@@ -12,11 +12,9 @@ export default function LocationButton({ setMapCenter }: LocationButtonProps) {
 
   const onLocateButtonClick = async () => {
     setMapCenter(undefined);
-    if (requestLocation) {
-      const newLocation = await requestLocation();
-      if (newLocation) {
-        setMapCenter(newLocation);
-      }
+    const newLocation = await requestLocation();
+    if (newLocation) {
+      setMapCenter(newLocation);
     }
   };
 

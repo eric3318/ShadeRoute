@@ -101,13 +101,24 @@ export default function Index() {
           />
         </View>
 
-        <Button
-          fontWeight="bold"
-          onPress={onConfirmButtonClick}
-          style={{ fontSize: 18 }}
-        >
-          Explore
-        </Button>
+        <View style={{ rowGap: 12 }}>
+          <Button
+            fontWeight="bold"
+            onPress={onConfirmButtonClick}
+            style={{ fontSize: 18 }}
+          >
+            Explore
+          </Button>
+
+          <Button
+            unstyled
+            fontWeight="bold"
+            onPress={() => router.push('/profile')}
+            style={{ alignSelf: 'center' }}
+          >
+            View saved routes
+          </Button>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -121,8 +132,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 24,
-    height: '50%',
-    justifyContent: 'space-between',
+    rowGap: 32,
   },
   heading: {
     fontSize: 32,

@@ -31,7 +31,6 @@ export default function RouteDisplay({ route }: RouteDisplayProps) {
 
         const n = coordinates.length;
 
-        // Handle first edge
         if (index === 0) {
           return {
             coordinates: path.slice(0, n),
@@ -39,7 +38,6 @@ export default function RouteDisplay({ route }: RouteDisplayProps) {
           };
         }
 
-        // Handle last edge
         if (index === array.length - 1) {
           return {
             coordinates: path.slice(-n),
@@ -47,7 +45,6 @@ export default function RouteDisplay({ route }: RouteDisplayProps) {
           };
         }
 
-        // Middle edges use the original coordinates
         return {
           coordinates,
           coverage: edge.shadeCoverage,
@@ -79,9 +76,9 @@ export default function RouteDisplay({ route }: RouteDisplayProps) {
             id={`line-layer-${index}`}
             style={{
               lineColor:
-                segment.coverage > 0.7
+                segment.coverage > 0.3333
                   ? '#2ecc71'
-                  : segment.coverage > 0.4
+                  : segment.coverage > 0.6666
                     ? '#f1c40f'
                     : '#e74c3c',
               lineWidth: 6,

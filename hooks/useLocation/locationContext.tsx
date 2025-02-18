@@ -2,12 +2,14 @@ import { createContext, ReactNode, useState } from 'react';
 import * as Location from 'expo-location';
 
 const LocationContext = createContext<{
-  requestLocation: (() => Promise<[number, number] | null>) | null;
+  requestLocation: () => Promise<[number, number] | null>;
   location: [number, number] | null;
-  subscribeToLocationUpdates:
-    | (() => Promise<Location.LocationSubscription>)
-    | null;
-}>({ requestLocation: null, location: null, subscribeToLocationUpdates: null });
+  setLocation: (location: [number, number]) => void;
+}>({
+  requestLocation: async () => null,
+  location: null,
+  setLocation: () => {},
+});
 
 type LocationProviderProps = {
   children: ReactNode;
@@ -15,6 +17,7 @@ type LocationProviderProps = {
 
 const LocationProvider = ({ children }: LocationProviderProps) => {
   const [location, setLocation] = useState<[number, number] | null>(null);
+
   const requestLocationPermission = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     return status === 'granted';
@@ -41,23 +44,12 @@ const LocationProvider = ({ children }: LocationProviderProps) => {
     }
   };
 
-  const subscribeToLocationUpdates = async () => {
-    const subscription = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.High,
-      },
-      (location) =>
-        setLocation([location.coords.longitude, location.coords.latitude])
-    );
-    return subscription;
-  };
-
   return (
     <LocationContext.Provider
       value={{
         requestLocation: getLocation,
         location,
-        subscribeToLocationUpdates,
+        setLocation,
       }}
     >
       {children}

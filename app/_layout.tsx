@@ -18,13 +18,6 @@ export default function RootLayout() {
       <ContextProvider>
         <Stack
           screenOptions={{
-            // headerStyle: {
-            //   backgroundColor: '#f4511e',
-            // },
-            // headerTintColor: '#fff',
-            // headerTitleStyle: {
-            //   fontWeight: 'bold',
-            // },
             headerShown: false,
           }}
         >

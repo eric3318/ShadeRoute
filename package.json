@@ -21,6 +21,8 @@
     "@react-navigation/native": "^7.0.14",
     "@rnmapbox/maps": "^10.1.33",
     "@tamagui/config": "^1.123.3",
+    "@turf/distance": "^7.2.0",
+    "@turf/turf": "^7.2.0",
     "date-fns": "^4.1.0",
     "expo": "~52.0.27",
     "expo-blur": "~14.0.2",
@@ -35,6 +37,7 @@
     "expo-symbols": "~0.2.1",
     "expo-system-ui": "~4.0.7",
     "expo-web-browser": "~14.0.2",
+    "firebase": "^11.3.0",
     "lucide-react-native": "^0.474.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -45,7 +48,9 @@
     "react-native-screens": "~4.4.0",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
-    "tamagui": "^1.123.3"
+    "tamagui": "^1.123.3",
+    "react-native-view-shot": "~4.0.3",
+    "expo-media-library": "~17.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

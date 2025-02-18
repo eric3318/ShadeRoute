@@ -5,6 +5,7 @@ export type Route = {
     distance: number;
   }>;
   path: [number, number][];
+  totalDistance: number;
 };
 
 export type APP_STATE = 'INITIAL' | 'NAVIGATING' | 'EDITING';

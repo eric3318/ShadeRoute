@@ -2,24 +2,36 @@ import { Text, View, StyleSheet } from 'react-native';
 import { Slider } from 'tamagui';
 import TimeDialog from './TimeDialog';
 import { useState } from 'react';
-import { APP_STATE, EDITING, NAVIGATING } from '@/lib/types';
+import { EDITING, NAVIGATING } from '@/lib/types';
 import { Button } from 'tamagui';
 import React from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAppState } from '@/hooks/useAppState/useAppState';
 import { useOptions } from '@/hooks/useOptions/useOptions';
+import { format } from 'date-fns';
+
 interface ControlPanelProps {
   open: boolean;
+  onStartTrip: () => void;
   onEndTrip: () => void;
   onEdit: () => void;
   onConfirmSettings: () => void;
+  inPreview?: boolean;
+  navInfo?: {
+    distanceTraveled: number;
+    speed: number;
+    arrivalTime: number;
+  };
 }
 
 export default function ControlPanel({
   open,
+  onStartTrip,
   onEndTrip,
   onEdit,
   onConfirmSettings,
+  inPreview = false,
+  navInfo,
 }: ControlPanelProps) {
   const { state } = useAppState();
   const { parameter, setParameter } = useOptions();
@@ -27,16 +39,68 @@ export default function ControlPanel({
 
   if (!open) return null;
 
+  if (inPreview) {
+    return (
+      <View style={styles.previewButtonsContainer}>
+        <Button
+          onPress={onEdit}
+          style={[styles.previewButton, { backgroundColor: 'red' }]}
+          color="white"
+          fontWeight="bold"
+        >
+          Back
+        </Button>
+
+        <Button
+          onPress={onStartTrip}
+          style={styles.previewButton}
+          color="white"
+          fontWeight="bold"
+        >
+          Go
+        </Button>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
         {state === NAVIGATING ? (
           <>
             <View style={{ alignSelf: 'flex-end' }}>
-              <Button onPress={onEdit} theme="black" style={{ padding: 8 }}>
-                <MaterialIcons name="settings" size={24} color="white" />
-              </Button>
+              <Button
+                onPress={onEdit}
+                theme="black"
+                icon={<MaterialIcons name="settings" size={24} color="white" />}
+              />
             </View>
+
+            {navInfo && (
+              <View style={styles.navInfoContainer}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Text style={{ fontSize: 16 }}>
+                    <Text style={{ fontWeight: 'bold' }}>Travelled:</Text>{' '}
+                    {navInfo.distanceTraveled.toFixed(1)} m
+                  </Text>
+                  <Text style={{ fontSize: 16 }}>
+                    <Text style={{ fontWeight: 'bold' }}>Speed:</Text>{' '}
+                    {navInfo.speed.toFixed(1)} m/s
+                  </Text>
+                </View>
+
+                <Text style={{ fontSize: 16 }}>
+                  <Text style={{ fontWeight: 'bold' }}>Arrival:</Text>{' '}
+                  {format(new Date(navInfo.arrivalTime), 'HH:mm')}
+                </Text>
+              </View>
+            )}
 
             <Button
               onPress={onEndTrip}
@@ -77,14 +141,13 @@ export default function ControlPanel({
               <Text>Most shade</Text>
             </View>
 
-            {/* todo: move preview control buttons to this component */}
             <Button
               onPress={onConfirmSettings}
               color="white"
               fontWeight="bold"
               style={{ backgroundColor: '#FF6403' }}
             >
-              Confirm
+              {state === EDITING ? 'Go' : 'Confirm'}
             </Button>
           </>
         )}
@@ -118,5 +181,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  previewButtonsContainer: {
+    marginVertical: 24,
+    marginHorizontal: 12,
+    rowGap: 12,
+  },
+  previewButton: {
+    backgroundColor: '#FF6403',
+  },
+  navInfoContainer: {
+    rowGap: 6,
   },
 });

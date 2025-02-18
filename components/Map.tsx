@@ -1,5 +1,5 @@
 import MapboxGL from '@rnmapbox/maps';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
 import { useLocation } from '@/hooks/useLocation/useLocation';
 import {
   POINT_TYPE,
@@ -12,18 +12,12 @@ import {
 } from '@/lib/types';
 import { useAppState } from '@/hooks/useAppState/useAppState';
 import RouteDisplay from './RouteDisplay';
-import { useEffect, useState, useRef } from 'react';
-import * as Location from 'expo-location';
-
+import { useEffect, useState } from 'react';
 interface MapProps {
   route?: Route;
   center: [number, number] | undefined;
   points: TripPoints;
-  onPointChange: (
-    newPoint: [number, number],
-    pointType: POINT_TYPE,
-    eventType: 'press' | 'drag'
-  ) => void;
+  onPointChange: (newPoint: [number, number], pointType: POINT_TYPE) => void;
 }
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '');
@@ -34,40 +28,12 @@ export default function Map({
   route,
   onPointChange,
 }: MapProps) {
-  const { location, subscribeToLocationUpdates } = useLocation();
+  const { location } = useLocation();
   const { state } = useAppState();
   const [bounds, setBounds] = useState<{
     ne: [number, number];
     sw: [number, number];
   } | null>(null);
-  const locationSubscription = useRef<Location.LocationSubscription | null>(
-    null
-  );
-
-  // Handle location subscription during navigation
-  useEffect(() => {
-    const setupLocationTracking = async () => {
-      if (state === NAVIGATING && subscribeToLocationUpdates) {
-        try {
-          // Subscribe to location updates
-          const subscription = await subscribeToLocationUpdates();
-          locationSubscription.current = subscription;
-        } catch (error) {
-          console.error('Error setting up location tracking:', error);
-        }
-      }
-    };
-
-    setupLocationTracking();
-
-    // Cleanup subscription when navigation ends or component unmounts
-    return () => {
-      if (locationSubscription.current) {
-        locationSubscription.current.remove();
-        locationSubscription.current = null;
-      }
-    };
-  }, [state, subscribeToLocationUpdates]);
 
   // Handle bounds and map centering
   useEffect(() => {
@@ -103,11 +69,11 @@ export default function Map({
     }
     const coordinates = event.geometry.coordinates;
     const pointType = points.startPoint ? END_POINT : START_POINT;
-    onPointChange(coordinates, pointType, 'press');
+    onPointChange(coordinates, pointType);
   };
 
   const onDragEnd = (event: any, pointType: POINT_TYPE) => {
-    onPointChange(event.geometry.coordinates, pointType, 'drag');
+    onPointChange(event.geometry.coordinates, pointType);
   };
 
   return (
@@ -126,6 +92,7 @@ export default function Map({
         maxZoomLevel={18}
         animationDuration={1000}
       />
+
       {route && <RouteDisplay route={route} />}
 
       {points.startPoint && (
@@ -146,6 +113,7 @@ export default function Map({
           />
         </MapboxGL.PointAnnotation>
       )}
+
       {points.endPoint && (
         <MapboxGL.PointAnnotation
           id="endPoint"
@@ -163,6 +131,7 @@ export default function Map({
           />
         </MapboxGL.PointAnnotation>
       )}
+
       {location && (
         <MapboxGL.MarkerView id="currentLocation" coordinate={location}>
           <View

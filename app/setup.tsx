@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
 import LocationButton from '@/components/LocationButton';
 import Map from '@/components/Map';
@@ -15,9 +15,15 @@ import {
 import { useAppState } from '@/hooks/useAppState/useAppState';
 import ControlPanel from '@/components/ControlPanel';
 import { useOptions } from '@/hooks/useOptions/useOptions';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { Button } from 'tamagui';
 import { router } from 'expo-router';
+import NavInstructions, { Instruction } from '@/components/NavInstructions';
+import * as turf from '@turf/turf';
+import { useLocation } from '@/hooks/useLocation/useLocation';
+import { addDocument } from '@/utils/firebaseHelpers';
+
+const CLOSE_PROXIMITY_DISTANCE = 300;
 const cityData: Record<string, [number, number]> = {
   Toronto: [-79.3871, 43.6426],
   Vancouver: [-123.13, 49.3],
@@ -31,12 +37,63 @@ export default function NavSetup() {
     endPoint: null,
   });
   const [route, setRoute] = useState<Route | null>(null);
+  const [instructions, setInstructions] = useState<Instruction[]>([]);
   const [previousRoute, setPreviousRoute] = useState<Route | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(
     cityData[city as string]
   );
   const [controlPanelOpen, setControlPanelOpen] = useState<boolean>(false);
-  const [inZoom, setInZoom] = useState<boolean>(false);
+  const [inPreview, setInPreview] = useState<boolean>(false);
+  const { location, requestLocation } = useLocation();
+  const [routeEdited, setRouteEdited] = useState<boolean>(false);
+  const [imageUri, setImageUri] = useState<string>('');
+  const [navInfo, setNavInfo] = useState<{
+    distanceTraveled: number;
+    speed: number;
+    arrivalTime: number;
+  } | null>(null);
+
+  const onSaveRoute = async () => {
+    const path = route?.path.map((point) => {
+      return { longitude: point[0], latitude: point[1] };
+    });
+
+    const details = route?.edgeDetails.map((edge) => {
+      return {
+        points: edge.points,
+        shadeCoverage: edge.shadeCoverage,
+        distance: edge.distance,
+      };
+    });
+
+    const routeData = {
+      startPoint: tripPoints.startPoint,
+      endPoint: tripPoints.endPoint,
+      path,
+      details,
+      city,
+      mode,
+      parameter,
+      tripTime: tripTime ? tripTime.toISOString() : new Date().toISOString(),
+      totalDistance: route?.totalDistance,
+      createdAt: new Date().toISOString(),
+    };
+
+    const success = await addDocument('routes', undefined, routeData);
+    if (success) {
+      Alert.alert('Route saved', 'Route saved successfully');
+    }
+  };
+
+  const showAlert = (title: string, message: string) => {
+    Alert.alert(title, message, [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      { text: 'OK', onPress: async () => await onSaveRoute() },
+    ]);
+  };
 
   const getRoute = async () => {
     if (!tripPoints.startPoint || !tripPoints.endPoint) {
@@ -94,6 +151,7 @@ export default function NavSetup() {
     }
 
     try {
+      console.log(tripTime?.getTime());
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_DATA_SERVER_URL}/api/shade`,
         {
@@ -167,7 +225,6 @@ export default function NavSetup() {
       if (!data) {
         throw new Error('Route data response is empty');
       }
-      console.log('route data', data);
       return data;
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -177,27 +234,41 @@ export default function NavSetup() {
     }
   };
 
-  const onGoButtonClick = async () => {
-    switch (state) {
-      case INITIAL:
-        setInZoom(false);
-        setState(NAVIGATING);
-        break;
-      case EDITING:
-        try {
-          setPreviousRoute(null);
-          setInZoom(false);
-          setState(NAVIGATING);
-        } catch (error) {
-          console.error('Error updating route:', error);
-        }
-        break;
+  const calcDistance = (from: [number, number], to: [number, number]) => {
+    const fromPoint = turf.point([from[0], from[1]]);
+    const toPoint = turf.point([to[0], to[1]]);
+    const distance = turf.distance(fromPoint, toPoint, { units: 'meters' });
+    return distance;
+  };
+
+  const isDistanceValid = async () => {
+    if (tripPoints.startPoint && tripPoints.endPoint) {
+      const currentLocation = await requestLocation();
+      const distance = calcDistance(
+        currentLocation as [number, number],
+        tripPoints.startPoint
+      );
+      return distance <= CLOSE_PROXIMITY_DISTANCE;
+    }
+  };
+
+  const startNavigation = async () => {
+    const isValid = await isDistanceValid();
+    if (isValid) {
+      setInPreview(false);
+      setState(NAVIGATING);
+    } else {
+      showAlert('You seem far away...', 'Save route for later?');
     }
   };
 
   const onBackButtonClick = () => {
-    setInZoom(false);
+    setInPreview(false);
     setState(EDITING);
+  };
+
+  const onGoButtonClick = async () => {
+    await startNavigation();
   };
 
   const onConfirmButtonClick = async () => {
@@ -206,7 +277,8 @@ export default function NavSetup() {
         try {
           const routeData = await getRoute();
           setRoute(routeData);
-          setInZoom(true);
+          setInstructions(routeData.instructions);
+          setRouteEdited(true);
         } catch (error) {
           console.error(
             'Failed to get route:',
@@ -215,13 +287,8 @@ export default function NavSetup() {
         }
         break;
       case EDITING:
-        setInZoom(true);
-        break;
+        await startNavigation();
     }
-  };
-
-  const onEditButtonClick = () => {
-    setState(EDITING);
   };
 
   const onEndTripButtonClick = () => {
@@ -239,40 +306,31 @@ export default function NavSetup() {
   };
 
   useEffect(() => {
-    if (state !== EDITING) {
-      return;
-    }
-    console.log('triggered route refresh');
-    async function getNewRoute() {
-      try {
+    if (state === EDITING) {
+      const getNewRoute = async () => {
         const newRouteData = await getRoute();
         if (newRouteData) {
-          console.log('new route');
           setRoute(newRouteData);
+          setInstructions(newRouteData.instructions);
           setPreviousRoute(null);
+          setRouteEdited(true);
         }
-      } catch (error) {
-        console.error(
-          'Error updating route:',
-          error instanceof Error ? error.message : 'Unknown error'
-        );
-      }
+      };
+      getNewRoute();
     }
-    getNewRoute();
   }, [tripPoints, state, parameter, tripTime, mode]);
 
-  const onPointChange = (
-    newPoint: [number, number],
-    pointType: POINT_TYPE,
-    eventType: 'press' | 'drag'
-  ) => {
+  useEffect(() => {
+    if (routeEdited) {
+      setInPreview(true);
+    }
+  }, [routeEdited]);
+
+  const onPointChange = (newPoint: [number, number], pointType: POINT_TYPE) => {
     setTripPoints((prev) => ({
       ...prev,
       [pointType === START_POINT ? 'startPoint' : 'endPoint']: newPoint,
     }));
-    if (state === EDITING && eventType === 'drag') {
-      setInZoom(true);
-    }
   };
 
   useEffect(() => {
@@ -287,9 +345,17 @@ export default function NavSetup() {
     }
   }, [state, tripPoints.startPoint, tripPoints.endPoint]);
 
+  const onInfoChange = (
+    distanceTraveled: number,
+    speed: number,
+    arrivalTime: number
+  ) => {
+    setNavInfo({ distanceTraveled, speed, arrivalTime });
+  };
+
   return (
     <View style={styles.container}>
-      {state === INITIAL && !inZoom && (
+      {state === INITIAL && !inPreview && (
         <View style={styles.promptContainer}>
           <Text style={styles.promptText}>
             {!tripPoints.startPoint
@@ -301,7 +367,7 @@ export default function NavSetup() {
         </View>
       )}
 
-      {state === EDITING && !inZoom && (
+      {state === EDITING && !inPreview && (
         <View style={styles.promptContainer}>
           <Text style={styles.promptText}>Drag points or change settings</Text>
         </View>
@@ -311,42 +377,42 @@ export default function NavSetup() {
         <LocationButton setMapCenter={setMapCenter} />
         <Button
           onPress={() => router.push('/')}
-          icon={<FontAwesome6 name="city" size={24} />}
+          icon={<FontAwesome5 name="home" size={24} />}
           style={{
             padding: 8,
           }}
         />
       </View>
 
-      <View
-        style={[styles.controlPanelContainer, inZoom && { display: 'none' }]}
-      >
+      <View style={styles.controlPanelContainer}>
         <ControlPanel
           open={controlPanelOpen}
+          onStartTrip={onGoButtonClick}
           onEndTrip={onEndTripButtonClick}
-          onEdit={onEditButtonClick}
+          onEdit={onBackButtonClick}
           onConfirmSettings={onConfirmButtonClick}
+          inPreview={inPreview}
+          navInfo={navInfo ?? undefined}
         />
       </View>
 
-      {inZoom && (
-        <View style={styles.previewControlButtonContainer}>
-          <Button
-            onPress={onBackButtonClick}
-            style={[styles.previewControlButton, { backgroundColor: 'red' }]}
-            color="white"
-            fontWeight="bold"
-          >
-            Back
-          </Button>
-          <Button
-            onPress={onGoButtonClick}
-            style={styles.previewControlButton}
-            color="white"
-            fontWeight="bold"
-          >
-            Go
-          </Button>
+      {state === NAVIGATING && route && instructions && (
+        <View
+          style={{
+            position: 'absolute',
+            top: '12%',
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            backgroundColor: '#219EBC',
+            borderRadius: 16,
+          }}
+        >
+          <NavInstructions
+            instructions={instructions}
+            totalDistance={route.totalDistance}
+            onInfoChange={onInfoChange}
+          />
         </View>
       )}
 
