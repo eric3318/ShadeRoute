@@ -3,7 +3,7 @@ import { Route } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { getDocuments } from '@/utils/firebaseHelpers';
 import RouteListItem from '@/components/RouteListItem';
-import { Link } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type SavedRoute = Route & {
   city: string;
@@ -21,34 +21,54 @@ export default function Profile() {
     getSavedRoutes();
   }, []);
 
+  // const getSavedRoutes = async () => {
+  //   try {
+  //     const data = await getDocuments('routes');
+
+  //     if (!data) {
+  //       console.log('No data found');
+  //       return;
+  //     }
+
+  //     const routesData = data.map((route) => {
+  //       const path = route.path.map(
+  //         (point: { longitude: number; latitude: number }) => {
+  //           return [point.longitude, point.latitude];
+  //         }
+  //       );
+  //       const edgeDetails = route.details;
+  //       return {
+  //         edgeDetails,
+  //         path,
+  //         city: route.city,
+  //         mode: route.mode,
+  //         parameter: route.parameter,
+  //         tripTime: route.tripTime,
+  //         totalDistance: route.totalDistance,
+  //         createdAt: route.createdAt,
+  //       };
+  //     });
+  //     setRoutes(routesData);
+  //   } catch (err) {
+  //     console.log(err);
+  //   }
+  // };
+
   const getSavedRoutes = async () => {
     try {
-      const data = await getDocuments('routes');
-
-      if (!data) {
-        console.log('No data found');
-        return;
+      const keys = await AsyncStorage.getAllKeys();
+      const routeKeys = keys.filter((key) => key.startsWith('route:'));
+      const savedRoutes: SavedRoute[] = [];
+      for (const key of routeKeys) {
+        const routeData = await AsyncStorage.getItem(key);
+        if (!routeData) {
+          console.log('No data found for route: ', key);
+          continue;
+        }
+        const routeObj = JSON.parse(routeData);
+        savedRoutes.push(routeObj);
       }
-
-      const routesData = data.map((route) => {
-        const path = route.path.map(
-          (point: { longitude: number; latitude: number }) => {
-            return [point.longitude, point.latitude];
-          }
-        );
-        const edgeDetails = route.details;
-        return {
-          edgeDetails,
-          path,
-          city: route.city,
-          mode: route.mode,
-          parameter: route.parameter,
-          tripTime: route.tripTime,
-          totalDistance: route.totalDistance,
-          createdAt: route.createdAt,
-        };
-      });
-      setRoutes(routesData);
+      setRoutes(savedRoutes);
     } catch (err) {
       console.log(err);
     }

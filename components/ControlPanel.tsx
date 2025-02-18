@@ -1,14 +1,13 @@
 import { Text, View, StyleSheet } from 'react-native';
-import { Slider } from 'tamagui';
-import TimeDialog from './TimeDialog';
+// import TimeDialog from './TimeDialog';
 import { useState } from 'react';
 import { EDITING, NAVIGATING } from '@/lib/types';
-import { Button } from 'tamagui';
 import React from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAppState } from '@/hooks/useAppState/useAppState';
 import { useOptions } from '@/hooks/useOptions/useOptions';
 import { format } from 'date-fns';
+import { Button, IconButton } from 'react-native-paper';
 
 interface ControlPanelProps {
   open: boolean;
@@ -45,18 +44,11 @@ export default function ControlPanel({
         <Button
           onPress={onEdit}
           style={[styles.previewButton, { backgroundColor: 'red' }]}
-          color="white"
-          fontWeight="bold"
         >
           Back
         </Button>
 
-        <Button
-          onPress={onStartTrip}
-          style={styles.previewButton}
-          color="white"
-          fontWeight="bold"
-        >
+        <Button onPress={onStartTrip} style={styles.previewButton}>
           Go
         </Button>
       </View>
@@ -69,10 +61,11 @@ export default function ControlPanel({
         {state === NAVIGATING ? (
           <>
             <View style={{ alignSelf: 'flex-end' }}>
-              <Button
+              <IconButton
                 onPress={onEdit}
-                theme="black"
-                icon={<MaterialIcons name="settings" size={24} color="white" />}
+                icon={() => (
+                  <MaterialIcons name="settings" size={24} color="white" />
+                )}
               />
             </View>
 
@@ -102,12 +95,7 @@ export default function ControlPanel({
               </View>
             )}
 
-            <Button
-              onPress={onEndTrip}
-              color="white"
-              fontWeight="bold"
-              style={{ backgroundColor: 'red' }}
-            >
+            <Button onPress={onEndTrip} style={{ backgroundColor: 'red' }}>
               End trip
             </Button>
           </>
@@ -115,15 +103,15 @@ export default function ControlPanel({
           <>
             <View style={styles.tripTimeContainer}>
               <Text style={styles.tripTimeText}>Trip begins</Text>
-              <TimeDialog
+              {/* <TimeDialog
                 open={timeDialogOpen}
                 onOpenChange={setTimeDialogOpen}
-              />
+              /> */}
             </View>
 
             <View style={styles.sliderContainer}>
               <Text>Shortest distance</Text>
-              <Slider
+              {/* <Slider
                 defaultValue={[parameter]}
                 max={1}
                 step={0.1}
@@ -136,15 +124,13 @@ export default function ControlPanel({
                   <Slider.TrackActive />
                 </Slider.Track>
                 <Slider.Thumb size="$2" index={0} circular />
-              </Slider>
+              </Slider> */}
 
               <Text>Most shade</Text>
             </View>
 
             <Button
               onPress={onConfirmSettings}
-              color="white"
-              fontWeight="bold"
               style={{ backgroundColor: '#FF6403' }}
             >
               {state === EDITING ? 'Go' : 'Confirm'}

@@ -16,14 +16,16 @@ import { useAppState } from '@/hooks/useAppState/useAppState';
 import ControlPanel from '@/components/ControlPanel';
 import { useOptions } from '@/hooks/useOptions/useOptions';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { Button } from 'tamagui';
+import { Button, IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
 import NavInstructions, { Instruction } from '@/components/NavInstructions';
 import * as turf from '@turf/turf';
 import { useLocation } from '@/hooks/useLocation/useLocation';
 import { addDocument } from '@/utils/firebaseHelpers';
+import InputDialog from '@/components/InputDialog';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const CLOSE_PROXIMITY_DISTANCE = 300;
+const CLOSE_PROXIMITY_DISTANCE = 500;
 const cityData: Record<string, [number, number]> = {
   Toronto: [-79.3871, 43.6426],
   Vancouver: [-123.13, 49.3],
@@ -52,8 +54,9 @@ export default function NavSetup() {
     speed: number;
     arrivalTime: number;
   } | null>(null);
+  const [inputDialogVisible, setInputDialogVisible] = useState<boolean>(false);
 
-  const onSaveRoute = async () => {
+  const onSaveRoute = async (name: string) => {
     const path = route?.path.map((point) => {
       return { longitude: point[0], latitude: point[1] };
     });
@@ -67,6 +70,7 @@ export default function NavSetup() {
     });
 
     const routeData = {
+      name,
       startPoint: tripPoints.startPoint,
       endPoint: tripPoints.endPoint,
       path,
@@ -79,9 +83,18 @@ export default function NavSetup() {
       createdAt: new Date().toISOString(),
     };
 
-    const success = await addDocument('routes', undefined, routeData);
-    if (success) {
-      Alert.alert('Route saved', 'Route saved successfully');
+    try {
+      const docId = await addDocument('routes', undefined, routeData);
+      if (!docId) {
+        Alert.alert('Failed to save route', 'Please try again');
+        return;
+      }
+
+      const jsonRouteData = JSON.stringify(routeData);
+      const key = `route:${docId}`;
+      await AsyncStorage.setItem(key, jsonRouteData);
+    } catch (err) {
+      Alert.alert('Failed to save route', 'Please try again');
     }
   };
 
@@ -91,7 +104,7 @@ export default function NavSetup() {
         text: 'Cancel',
         style: 'cancel',
       },
-      { text: 'OK', onPress: async () => await onSaveRoute() },
+      { text: 'OK', onPress: () => setInputDialogVisible(true) },
     ]);
   };
 
@@ -353,8 +366,22 @@ export default function NavSetup() {
     setNavInfo({ distanceTraveled, speed, arrivalTime });
   };
 
+  const onInputDialogSave = async (name: string) => {
+    await onSaveRoute(name);
+    onInputDialogClose();
+  };
+
+  const onInputDialogClose = () => {
+    setInputDialogVisible(false);
+  };
+
   return (
     <View style={styles.container}>
+      <InputDialog
+        visible={inputDialogVisible}
+        onSave={onInputDialogSave}
+        onClose={onInputDialogClose}
+      />
       {state === INITIAL && !inPreview && (
         <View style={styles.promptContainer}>
           <Text style={styles.promptText}>
@@ -375,12 +402,9 @@ export default function NavSetup() {
 
       <View style={styles.locationButtonContainer}>
         <LocationButton setMapCenter={setMapCenter} />
-        <Button
+        <IconButton
           onPress={() => router.push('/')}
-          icon={<FontAwesome5 name="home" size={24} />}
-          style={{
-            padding: 8,
-          }}
+          icon={() => <FontAwesome5 name="home" size={24} />}
         />
       </View>
 

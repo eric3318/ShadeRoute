@@ -6,6 +6,7 @@ import {
   doc,
   deleteDoc,
   getDocs,
+  getDoc,
 } from 'firebase/firestore';
 
 export const addDocument = async (
@@ -16,11 +17,14 @@ export const addDocument = async (
   try {
     const path = `${collectionName}${subCollectionName && `/${subCollectionName}`}`;
     const collectionRef = collection(db, path);
-    await addDoc(collectionRef, data);
-    return true;
+    const docRef = await addDoc(collectionRef, data);
+    if (!docRef) {
+      return null;
+    }
+    return docRef.id;
   } catch (err) {
     console.log(err);
-    return false;
+    return null;
   }
 };
 

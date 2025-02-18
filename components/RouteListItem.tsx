@@ -2,7 +2,7 @@ import { View, StyleSheet, Image, Text } from 'react-native';
 import { SavedRoute } from '@/app/(tabs)/profile';
 import { format } from 'date-fns';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { Button } from 'tamagui';
+import { Button, IconButton } from 'react-native-paper';
 type RouteListItemProps = {
   route: SavedRoute;
 };
@@ -24,15 +24,13 @@ export default function RouteListItem({ route }: RouteListItemProps) {
         <Text style={{ fontSize: 12 }}>{route.mode}</Text>
       </View>
       <View style={{ marginLeft: 'auto', flexDirection: 'row', gap: 16 }}>
-        <Button
-          icon={
+        <IconButton
+          icon={() => (
             <FontAwesome5 name="arrow-circle-right" size={26} color="#023047" />
-          }
-          p={0}
+          )}
         />
-        <Button
-          icon={<FontAwesome5 name="trash" size={26} color="#ef233c" />}
-          p={0}
+        <IconButton
+          icon={() => <FontAwesome5 name="trash" size={26} color="#ef233c" />}
         />
       </View>
     </View>

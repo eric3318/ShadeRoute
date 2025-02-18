@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { Button } from 'tamagui';
 import { router } from 'expo-router';
+import { Button } from 'react-native-paper';
 export default function Layout() {
   return (
     <Tabs
@@ -28,11 +28,7 @@ export default function Layout() {
             color: '#219ebc',
           },
           headerTitle: 'Routes',
-          headerLeft: () => (
-            <Button unstyled onPress={() => router.back()} color="#023047">
-              Back
-            </Button>
-          ),
+          headerLeft: () => <Button onPress={() => router.back()}>Back</Button>,
         }}
       />
     </Tabs>

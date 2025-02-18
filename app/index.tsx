@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View, SafeAreaView, FlatList } from 'react-native';
-import { Button } from 'tamagui';
 import { router } from 'expo-router';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useOptions } from '@/hooks/useOptions/useOptions';
 import { useAppState } from '@/hooks/useAppState/useAppState';
 import { EDITING, INITIAL, NAVIGATING } from '@/lib/types';
+import { IconButton } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 const cityOptions = ['Vancouver', 'Toronto', 'New York'];
 
 const modeOptions = [
@@ -38,8 +39,8 @@ export default function Index() {
 
   const renderIconButton = (modeOption: ModeOption) => {
     return (
-      <Button
-        icon={<FontAwesome6 name={modeOption.icon} size={28} />}
+      <IconButton
+        icon={() => <FontAwesome6 name={modeOption.icon} size={28} />}
         onPress={() => setMode(modeOption.label)}
         style={[
           styles.iconButton,
@@ -51,7 +52,7 @@ export default function Index() {
 
   const renderCityOption = (cityOption: string) => {
     return (
-      <Button unstyled onPress={() => setCity(cityOption)} style={{ flex: 1 }}>
+      <Button onPress={() => setCity(cityOption)} style={{ flex: 1 }}>
         <View
           style={
             cityOption === city && {
@@ -102,17 +103,9 @@ export default function Index() {
         </View>
 
         <View style={{ rowGap: 12 }}>
-          <Button
-            fontWeight="bold"
-            onPress={onConfirmButtonClick}
-            style={{ fontSize: 18 }}
-          >
-            Explore
-          </Button>
+          <Button onPress={onConfirmButtonClick}>Explore</Button>
 
           <Button
-            unstyled
-            fontWeight="bold"
             onPress={() => router.push('/profile')}
             style={{ alignSelf: 'center' }}
           >

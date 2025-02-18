@@ -1,8 +1,7 @@
-import { Button } from 'tamagui';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useLocation } from '@/hooks/useLocation/useLocation';
 import { StyleSheet } from 'react-native';
-
+import { Button, IconButton } from 'react-native-paper';
 interface LocationButtonProps {
   setMapCenter: (center: [number, number] | undefined) => void;
 }
@@ -19,10 +18,12 @@ export default function LocationButton({ setMapCenter }: LocationButtonProps) {
   };
 
   return (
-    <Button
+    <IconButton
       onPress={async () => await onLocateButtonClick()}
       style={styles.button}
-      icon={<FontAwesome6 name="location-crosshairs" size={24} color="blue" />}
+      icon={() => (
+        <FontAwesome6 name="location-crosshairs" size={24} color="blue" />
+      )}
     />
   );
 }
