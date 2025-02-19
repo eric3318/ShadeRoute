@@ -6,6 +6,7 @@ import { useAppState } from '@/hooks/useAppState/useAppState';
 import { EDITING, INITIAL, NAVIGATING } from '@/lib/types';
 import { IconButton } from 'react-native-paper';
 import { Button } from 'react-native-paper';
+import { Image } from 'react-native';
 const cityOptions = ['Vancouver', 'Toronto', 'New York'];
 
 const modeOptions = [
@@ -78,6 +79,15 @@ export default function Index() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentContainer}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('@/assets/images/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>Welcome</Text>
+        </View>
+
         <View style={styles.optionsContainer}>
           <Text style={styles.heading}>Select a city</Text>
           <FlatList
@@ -90,9 +100,7 @@ export default function Index() {
         </View>
 
         <View style={styles.optionsContainer}>
-          <Text style={styles.heading}>
-            Are you a runner, walker, or cyclist?
-          </Text>
+          <Text style={styles.heading}>Runner, walker, or cyclist?</Text>
           <FlatList
             data={modeOptions}
             renderItem={({ item }) => renderIconButton(item)}
@@ -102,11 +110,21 @@ export default function Index() {
           />
         </View>
 
-        <View style={{ rowGap: 12 }}>
-          <Button onPress={onConfirmButtonClick}>Explore</Button>
+        <View style={{ rowGap: 12, marginTop: 'auto' }}>
+          <Button
+            onPress={onConfirmButtonClick}
+            buttonColor="#FF6403"
+            textColor="white"
+            labelStyle={styles.mainButtonText}
+            contentStyle={styles.mainButton}
+          >
+            Explore
+          </Button>
 
           <Button
             onPress={() => router.push('/routes-saved')}
+            buttonColor="transparent"
+            textColor="white"
             style={{ alignSelf: 'center' }}
           >
             View saved routes
@@ -120,15 +138,32 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     backgroundColor: '#FB8500',
   },
   contentContainer: {
-    padding: 24,
-    rowGap: 32,
+    flex: 1,
+    rowGap: 24,
+    paddingTop: 36,
+    paddingHorizontal: 18,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    rowGap: 12,
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  logo: {
+    width: 150,
+    height: 150,
+    padding: 12,
+    boxShadow: '0 0 6px 0 rgba(0, 0, 0, 0.5)',
+    borderRadius: '25%',
   },
   heading: {
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: 'bold',
     color: 'white',
   },
@@ -137,7 +172,12 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     flex: 1,
-    padding: 0,
+  },
+  mainButton: {
+    padding: 6,
+  },
+  mainButtonText: {
+    fontSize: 18,
   },
   selectedIconButton: {
     backgroundColor: '#ffb703',

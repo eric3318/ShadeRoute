@@ -12,7 +12,7 @@ export default function RootLayout() {
           }}
         >
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="setup" />
+          <Stack.Screen name="nav" />
         </Stack>
       </ContextProvider>
     </PaperProvider>
