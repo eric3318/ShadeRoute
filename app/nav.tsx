@@ -31,7 +31,7 @@ const cityData: Record<string, [number, number]> = {
   Vancouver: [-123.13, 49.3],
 };
 
-export default function NavSetup() {
+export default function Nav() {
   const { state, setState } = useAppState();
   const { city, mode, parameter, date: tripTime } = useOptions();
   const [tripPoints, setTripPoints] = useState<TripPoints>({

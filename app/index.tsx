@@ -29,7 +29,7 @@ export default function Index() {
         router.back();
       } else {
         router.push({
-          pathname: '/setup',
+          pathname: '/nav',
         });
       }
     } else {
@@ -106,7 +106,7 @@ export default function Index() {
           <Button onPress={onConfirmButtonClick}>Explore</Button>
 
           <Button
-            onPress={() => router.push('/profile')}
+            onPress={() => router.push('/routes-saved')}
             style={{ alignSelf: 'center' }}
           >
             View saved routes

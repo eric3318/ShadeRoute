@@ -1,5 +1,5 @@
 import { View, StyleSheet, Image, Text } from 'react-native';
-import { SavedRoute } from '@/app/(tabs)/profile';
+import { SavedRoute } from '@/app/(tabs)/routes-saved';
 import { format } from 'date-fns';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { Button, IconButton } from 'react-native-paper';
@@ -16,21 +16,21 @@ export default function RouteListItem({ route }: RouteListItemProps) {
       />
       <View style={styles.infoContainer}>
         <Text style={{ fontSize: 12, fontWeight: 600 }}>
-          {format(new Date(route.createdAt), 'MMM d HH:mm')} {route.city}{' '}
+          {format(new Date(route.tripTime), 'MMM d HH:mm')} {route.city}
         </Text>
         <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
           {(route.totalDistance / 1000).toFixed(2)} km
         </Text>
         <Text style={{ fontSize: 12 }}>{route.mode}</Text>
       </View>
-      <View style={{ marginLeft: 'auto', flexDirection: 'row', gap: 16 }}>
+      <View style={styles.iconContainer}>
         <IconButton
           icon={() => (
-            <FontAwesome5 name="arrow-circle-right" size={26} color="#023047" />
+            <FontAwesome5 name="arrow-circle-right" size={22} color="#023047" />
           )}
         />
         <IconButton
-          icon={() => <FontAwesome5 name="trash" size={26} color="#ef233c" />}
+          icon={() => <FontAwesome5 name="trash" size={22} color="#ef233c" />}
         />
       </View>
     </View>
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    columnGap: 24,
+    columnGap: 18,
     alignItems: 'center',
     padding: 12,
   },
@@ -53,5 +53,8 @@ const styles = StyleSheet.create({
   infoContainer: {
     flexGrow: 1,
     rowGap: 8,
+  },
+  iconContainer: {
+    flexDirection: 'row',
   },
 });
