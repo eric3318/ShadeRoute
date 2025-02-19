@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import * as Location from 'expo-location';
 import * as turf from '@turf/turf';
+import * as Speech from 'expo-speech';
 import { useLocation } from '@/hooks/useLocation/useLocation';
 
 export type Instruction = {
@@ -34,6 +35,7 @@ export default function NavInstructions({
   const [startTime, setStartTime] = useState<Date>(new Date());
   const [speed, setSpeed] = useState<number>(0);
   const [distanceTraveled, setDistanceTraveled] = useState<number>(0);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   useEffect(() => {
     const setupLocationTracking = async () => {
@@ -45,7 +47,39 @@ export default function NavInstructions({
       };
     };
     setupLocationTracking();
+
+    return () => {
+      Speech.stop();
+    };
   }, []);
+
+  const speakInstruction = async (instruction: Instruction) => {
+    if (isSpeaking) {
+      await Speech.stop();
+    }
+
+    setIsSpeaking(true);
+    const distanceText = `${Math.round(instruction.distance)} meters`;
+    const speechText = `${instruction.turnDescription} in ${distanceText}`;
+
+    try {
+      await Speech.speak(speechText, {
+        rate: 0.9,
+        pitch: 1.0,
+        onDone: () => setIsSpeaking(false),
+        onError: () => setIsSpeaking(false),
+      });
+    } catch (error) {
+      console.error('Speech error:', error);
+      setIsSpeaking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentInstruction) {
+      speakInstruction(currentInstruction);
+    }
+  }, [currentInstruction?.name]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -58,17 +92,6 @@ export default function NavInstructions({
     }, 1000);
     return () => clearInterval(interval);
   }, [distanceTraveled, startTime]);
-
-  // useEffect(() => {
-  //   const currentTime = new Date();
-  //   const timeElapsed = currentTime.getTime() - startTime.getTime();
-  //   const currentSpeed = timeElapsed
-  //     ? distanceTraveled / timeElapsed
-  //     : 0;
-  //   const arrivalTime = startTime.getTime() + totalDistance / currentSpeed;
-  //   setSpeed(currentSpeed);
-  //   onInfoChange(distanceTraveled, currentSpeed, arrivalTime);
-  // }, []);
 
   const subscribeToLocationUpdates = async () => {
     const locationSubscription = await Location.watchPositionAsync(
@@ -96,11 +119,18 @@ export default function NavInstructions({
           const distanceUntilNextInstruction = turf.distance(from, to, {
             units: 'meters',
           });
+
+          if (distanceUntilNextInstruction < 50 && !isSpeaking) {
+            speakInstruction(currentInstruction);
+          }
+
           if (distanceUntilNextInstruction < 10) {
             if (index < instructions.length - 1) {
-              setCurrentInstruction(instructions[index + 1]);
+              const nextInstruction = instructions[index + 1];
+              setCurrentInstruction(nextInstruction);
               setIndex(index + 1);
             } else {
+              Speech.speak('You have reached your destination');
               setCurrentInstruction(null);
               setIndex(0);
             }
