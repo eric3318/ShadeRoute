@@ -1,5 +1,5 @@
 import { Text, View, StyleSheet } from 'react-native';
-// import TimeDialog from './TimeDialog';
+import TimeDialog from './TimeDialog';
 import { useState } from 'react';
 import { EDITING, NAVIGATING } from '@/lib/types';
 import React from 'react';
@@ -8,6 +8,7 @@ import { useAppState } from '@/hooks/useAppState/useAppState';
 import { useOptions } from '@/hooks/useOptions/useOptions';
 import { format } from 'date-fns';
 import { Button, IconButton } from 'react-native-paper';
+import Slider from '@react-native-community/slider';
 
 interface ControlPanelProps {
   open: boolean;
@@ -103,35 +104,32 @@ export default function ControlPanel({
           <>
             <View style={styles.tripTimeContainer}>
               <Text style={styles.tripTimeText}>Trip begins</Text>
-              {/* <TimeDialog
+              <TimeDialog
                 open={timeDialogOpen}
                 onOpenChange={setTimeDialogOpen}
-              /> */}
+              />
             </View>
 
             <View style={styles.sliderContainer}>
-              <Text>Shortest distance</Text>
-              {/* <Slider
-                defaultValue={[parameter]}
-                max={1}
+              <Text style={styles.sliderLabel}>Shortest distance</Text>
+              <Slider
+                style={styles.slider}
+                value={parameter}
+                minimumValue={0}
+                maximumValue={1}
                 step={0.1}
-                width={120}
-                onSlideEnd={(e, value) => {
-                  setParameter(value);
-                }}
-              >
-                <Slider.Track>
-                  <Slider.TrackActive />
-                </Slider.Track>
-                <Slider.Thumb size="$2" index={0} circular />
-              </Slider> */}
-
-              <Text>Most shade</Text>
+                onValueChange={setParameter}
+                minimumTrackTintColor="#FF6403"
+                maximumTrackTintColor="#000000"
+                thumbTintColor="#FF6403"
+              />
+              <Text style={styles.sliderLabel}>Most shade</Text>
             </View>
 
             <Button
               onPress={onConfirmSettings}
-              style={{ backgroundColor: '#FF6403' }}
+              buttonColor="#FF6403"
+              textColor="white"
             >
               {state === EDITING ? 'Go' : 'Confirm'}
             </Button>
@@ -166,7 +164,16 @@ const styles = StyleSheet.create({
   sliderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 3,
+  },
+  slider: {
+    height: 40,
+    flexGrow: 1,
+  },
+  sliderLabel: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
   previewButtonsContainer: {
     marginVertical: 24,

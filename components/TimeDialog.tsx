@@ -1,120 +1,115 @@
-// import TimePicker from './TimePicker';
-// import { useState } from 'react';
-// import { format } from 'date-fns';
-// import { useOptions } from '@/hooks/useOptions/useOptions';
+import React from 'react';
+import { Button as RNPButton, Portal, Dialog } from 'react-native-paper';
+import { View } from 'react-native';
+import TimePicker from './TimePicker';
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { useOptions } from '@/hooks/useOptions/useOptions';
+import { StyleSheet } from 'react-native';
 
-// interface TimeDialogProps {
-//   open: boolean;
-//   onOpenChange: (open: boolean) => void;
-// }
+type TimeDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
 
-// function TimeDialog({ open, onOpenChange }: TimeDialogProps) {
-//   const { date, setDate } = useOptions();
-//   const [dateValue, setDateValue] = useState<Date | null>(date);
-//   const [mode, setMode] = useState<'date' | 'time'>('date');
+function TimeDialog({ open, onOpenChange }: TimeDialogProps) {
+  const { date, setDate } = useOptions();
+  const [dateValue, setDateValue] = useState<Date | null>(date);
+  const [mode, setMode] = useState<'date' | 'time'>('date');
 
-//   const onDateConfirm = (date: Date | null) => {
-//     setDate(date);
-//   };
+  const onDateConfirm = (date: Date | null) => {
+    setDate(date);
+  };
 
-//   const onLastButtonClick = () => {
-//     toggleMode();
-//   };
+  const onLastButtonClick = () => {
+    toggleMode();
+  };
 
-//   const onNextButtonClick = () => {
-//     if (mode === 'date') {
-//       toggleMode();
-//       return;
-//     }
-//     onDateConfirm(dateValue);
-//     setMode('date');
-//     onOpenChange(false);
-//   };
+  const onNextButtonClick = () => {
+    if (mode === 'date') {
+      toggleMode();
+      return;
+    }
+    onDateConfirm(dateValue);
+    setMode('date');
+    onOpenChange(false);
+  };
 
-//   const toggleMode = () => {
-//     setMode((prev) => (prev === 'date' ? 'time' : 'date'));
-//   };
+  const toggleMode = () => {
+    setMode((prev) => (prev === 'date' ? 'time' : 'date'));
+  };
 
-//   const onOpenChangeHandler = (open: boolean) => {
-//     setMode('date');
-//     onOpenChange(open);
-//   };
+  const onOpenChangeHandler = (open: boolean) => {
+    setMode('date');
+    onOpenChange(open);
+  };
 
-//   return (
-//     <Dialog modal open={open} onOpenChange={onOpenChangeHandler}>
-//       <Dialog.Trigger asChild>
-//         <Button theme="black" fontWeight="bold">
-//           {date ? format(date, 'MMM d, hh:mm aaa') : 'Now'}
-//         </Button>
-//       </Dialog.Trigger>
+  const hideDialog = () => onOpenChangeHandler(false);
 
-//       <Dialog.Portal>
-//         <Dialog.Overlay
-//           key="overlay"
-//           animation="slow"
-//           opacity={0.5}
-//           enterStyle={{ opacity: 0 }}
-//           exitStyle={{ opacity: 0 }}
-//         />
+  return (
+    <>
+      <RNPButton
+        mode="contained"
+        buttonColor="#023047"
+        onPress={() => onOpenChangeHandler(true)}
+        style={styles.triggerButton}
+      >
+        {date ? format(date, 'MMM d, hh:mm aaa') : 'Now'}
+      </RNPButton>
 
-//         <Dialog.Content
-//           bordered
-//           elevate
-//           key="content"
-//           animateOnly={['transform', 'opacity']}
-//           animation={[
-//             'quicker',
-//             {
-//               opacity: {
-//                 overshootClamping: true,
-//               },
-//             },
-//           ]}
-//           enterStyle={{ x: 0, y: -20, opacity: 0, scale: 0.9 }}
-//           exitStyle={{ x: 0, y: 10, opacity: 0, scale: 0.95 }}
-//           position="absolute"
-//           bottom="50%"
-//         >
-//           <Dialog.Title size="$3" fontWeight="bold">
-//             Trip begins
-//           </Dialog.Title>
+      <Portal>
+        <Dialog visible={open} onDismiss={hideDialog} style={styles.dialog}>
+          <Dialog.Title>Trip begins</Dialog.Title>
 
-//           <TimePicker
-//             mode={mode}
-//             date={dateValue}
-//             onTimeChange={setDateValue}
-//           />
+          <Dialog.Content>
+            <TimePicker
+              mode={mode}
+              date={dateValue}
+              onTimeChange={setDateValue}
+            />
 
-//           <YStack gap="$3">
-//             {mode === 'time' && (
-//               <Button
-//                 onPress={onLastButtonClick}
-//                 theme="red"
-//                 color="red"
-//                 fontWeight="bold"
-//               >
-//                 Choose a different day
-//               </Button>
-//             )}
+            <View style={styles.buttonContainer}>
+              {mode === 'time' && (
+                <RNPButton
+                  mode="outlined"
+                  onPress={onLastButtonClick}
+                  style={styles.button}
+                  textColor="#FF0000"
+                >
+                  Choose a different day
+                </RNPButton>
+              )}
 
-//             <Button onPress={onNextButtonClick} theme="black" fontWeight="bold">
-//               Next
-//             </Button>
-//           </YStack>
+              <RNPButton
+                mode="contained"
+                onPress={onNextButtonClick}
+                style={styles.button}
+              >
+                Next
+              </RNPButton>
+            </View>
+          </Dialog.Content>
+        </Dialog>
+      </Portal>
+    </>
+  );
+}
 
-//           <Dialog.Close asChild>
-//             <Button
-//               position="absolute"
-//               top="$3"
-//               right="$3"
-//               size="$2"
-//               circular
-//             />
-//           </Dialog.Close>
-//         </Dialog.Content>
-//       </Dialog.Portal>
-//     </Dialog>
-//   );
-// }
+const styles = StyleSheet.create({
+  dialog: {
+    position: 'absolute',
+    bottom: '50%',
+  },
+  buttonContainer: {
+    gap: 12,
+    marginTop: 16,
+  },
+  button: {
+    marginVertical: 4,
+  },
+  triggerButton: {
+    borderRadius: 8,
+  },
+});
 
-// export default TimeDialog;
+export default TimeDialog;
