@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet, FlatList } from 'react-native';
 import { Route } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import RouteListItem from '@/components/RouteListItem';
@@ -17,13 +17,14 @@ export type SavedRoute = Route & {
 
 const sortByOptions = ['Trip Date', 'Add Date', 'Distance', 'Name'];
 const cityFilterOptions = ['All', 'Vancouver', 'Toronto', 'New York'];
-const modeFilterOptions = ['All', 'Walking', 'Running', 'Biking'];
+const modeFilterOptions = ['All', 'walking', 'running', 'biking'];
 
 export default function RoutesSaved() {
   const [routes, setRoutes] = useState<SavedRoute[]>([]);
-  const [sortBy, setSortBy] = useState<string>('Date');
-  const [cityFilter, setCityFilter] = useState<string>('');
-  const [modeFilter, setModeFilter] = useState<string>('');
+  const [filteredRoutes, setFilteredRoutes] = useState<SavedRoute[]>([]);
+  const [sortBy, setSortBy] = useState<string>(sortByOptions[0]);
+  const [cityFilter, setCityFilter] = useState<string>(cityFilterOptions[0]);
+  const [modeFilter, setModeFilter] = useState<string>(modeFilterOptions[0]);
   const [dropdownStatus, setDropdownStatus] = useState<{
     sortBy: boolean;
     city: boolean;
@@ -67,6 +68,7 @@ export default function RoutesSaved() {
         };
       });
       setRoutes(routesData);
+      setFilteredRoutes(routesData);
     } catch (err) {
       console.log(err);
     }
@@ -77,12 +79,54 @@ export default function RoutesSaved() {
   };
 
   const onFilterChange = (value: string, filter: string) => {
-    if (filter === 'city') {
-      setCityFilter(value);
-    } else if (filter === 'mode') {
-      setModeFilter(value);
+    switch (filter) {
+      case 'city':
+        setCityFilter(value);
+        break;
+      case 'mode':
+        setModeFilter(value);
+        break;
+      default:
+        break;
     }
   };
+
+  useEffect(() => {
+    let currRoutes = routes;
+    if (cityFilter !== 'All') {
+      currRoutes = currRoutes.filter((route) => route.city === cityFilter);
+    }
+    if (modeFilter !== 'All') {
+      currRoutes = currRoutes.filter((route) => route.mode === modeFilter);
+    }
+    setFilteredRoutes(currRoutes);
+  }, [cityFilter, modeFilter]);
+
+  useEffect(() => {
+    if (sortBy === 'Trip Date') {
+      setFilteredRoutes((prev) =>
+        prev.sort(
+          (a, b) =>
+            new Date(a.tripTime).getTime() - new Date(b.tripTime).getTime()
+        )
+      );
+    } else if (sortBy === 'Add Date') {
+      setFilteredRoutes((prev) =>
+        prev.sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        )
+      );
+    } else if (sortBy === 'Distance') {
+      setFilteredRoutes((prev) =>
+        prev.sort((a, b) => a.totalDistance - b.totalDistance)
+      );
+    } else if (sortBy === 'Name') {
+      setFilteredRoutes((prev) =>
+        prev.sort((a, b) => a.city.localeCompare(b.city))
+      );
+    }
+  }, [sortBy]);
 
   const onVisibilityChange = (option: string, newStatus: boolean) => {
     setDropdownStatus((prev) => {
@@ -98,30 +142,6 @@ export default function RoutesSaved() {
       return newState;
     });
   };
-
-  useEffect(() => {
-    if (sortBy === 'Trip Date') {
-      setRoutes((prev) =>
-        prev.sort(
-          (a, b) =>
-            new Date(a.tripTime).getTime() - new Date(b.tripTime).getTime()
-        )
-      );
-    } else if (sortBy === 'Add Date') {
-      setRoutes((prev) =>
-        prev.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        )
-      );
-    } else if (sortBy === 'Distance') {
-      setRoutes((prev) =>
-        prev.sort((a, b) => a.totalDistance - b.totalDistance)
-      );
-    } else if (sortBy === 'Name') {
-      setRoutes((prev) => prev.sort((a, b) => a.city.localeCompare(b.city)));
-    }
-  }, [sortBy]);
 
   // const getSavedRoutes = async () => {
   //   try {
@@ -148,6 +168,7 @@ export default function RoutesSaved() {
       <View style={styles.filterContainer}>
         <DropdownPicker
           options={sortByOptions}
+          value={sortBy}
           onValueChange={onSortByChange}
           visible={dropdownStatus.sortBy}
           onVisibilityChange={(newStatus) =>
@@ -156,6 +177,7 @@ export default function RoutesSaved() {
         />
         <DropdownPicker
           options={cityFilterOptions}
+          value={cityFilter}
           onValueChange={(value) => onFilterChange(value, 'city')}
           visible={dropdownStatus.city}
           onVisibilityChange={(newStatus) =>
@@ -164,6 +186,7 @@ export default function RoutesSaved() {
         />
         <DropdownPicker
           options={modeFilterOptions}
+          value={modeFilter}
           onValueChange={(value) => onFilterChange(value, 'mode')}
           visible={dropdownStatus.mode}
           onVisibilityChange={(newStatus) =>
@@ -174,7 +197,7 @@ export default function RoutesSaved() {
       </View>
 
       <FlatList
-        data={routes}
+        data={filteredRoutes}
         renderItem={({ item }) => <RouteListItem route={item} />}
         ItemSeparatorComponent={() => (
           <View

@@ -6,9 +6,10 @@ import { StyleSheet } from 'react-native';
 
 type DropdownPickerProps = {
   options: string[];
-  defaultValue?: string;
   visible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
+  value: string;
+  defaultValue?: string;
   onValueChange: (value: string) => void;
   width?: DimensionValue;
   color?: string;
@@ -18,23 +19,20 @@ type DropdownPickerProps = {
 
 export default function DropdownPicker({
   options,
-  defaultValue,
   visible,
   onVisibilityChange,
+  value,
+  defaultValue,
   onValueChange,
   color = '#023047',
   width = '100%',
   dropdownWidth = 200,
   sameWidth = false,
 }: DropdownPickerProps) {
-  const [selectedValue, setSelectedValue] = useState<string>(
-    defaultValue ?? options[0]
-  );
   const [internalVisible, setInternalVisible] = useState<boolean>(false);
   const controlled = visible !== undefined;
 
   const handleValueChange = (value: string) => {
-    setSelectedValue(value);
     onValueChange(value);
   };
 
@@ -55,11 +53,11 @@ export default function DropdownPicker({
         labelStyle={styles.buttonLabel}
         style={{ width: width }}
       >
-        {selectedValue}
+        {value}
       </Button>
       {(controlled ? visible : internalVisible) && (
         <Picker
-          selectedValue={selectedValue}
+          selectedValue={value}
           onValueChange={handleValueChange}
           itemStyle={{ height: 150 }}
           style={[styles.picker, { width: sameWidth ? width : dropdownWidth }]}

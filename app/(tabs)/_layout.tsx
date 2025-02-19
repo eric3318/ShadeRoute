@@ -17,22 +17,6 @@ export default function Layout() {
       }}
     >
       <Tabs.Screen
-        name="routes-saved"
-        options={{
-          tabBarIcon: () => (
-            <FontAwesome5 name="route" size={24} color="#023047" />
-          ),
-          tabBarLabel: 'Routes Archive',
-          tabBarLabelStyle: {
-            fontSize: 12,
-            marginTop: 4,
-            color: '#219ebc',
-          },
-          headerTitle: 'Routes',
-          headerLeft: () => <Button onPress={() => router.back()}>Back</Button>,
-        }}
-      />
-      <Tabs.Screen
         name="my-trips"
         options={{
           tabBarIcon: () => (
@@ -45,6 +29,22 @@ export default function Layout() {
             color: '#219ebc',
           },
           headerTitle: 'Trips',
+          headerLeft: () => <Button onPress={() => router.back()}>Back</Button>,
+        }}
+      />
+      <Tabs.Screen
+        name="routes-saved"
+        options={{
+          tabBarIcon: () => (
+            <FontAwesome5 name="route" size={24} color="#023047" />
+          ),
+          tabBarLabel: 'Routes Archive',
+          tabBarLabelStyle: {
+            fontSize: 12,
+            marginTop: 4,
+            color: '#219ebc',
+          },
+          headerTitle: 'Routes',
           headerLeft: () => <Button onPress={() => router.back()}>Back</Button>,
         }}
       />
