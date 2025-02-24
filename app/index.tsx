@@ -7,7 +7,7 @@ import { EDITING, INITIAL, NAVIGATING } from '@/lib/types';
 import { IconButton } from 'react-native-paper';
 import { Button } from 'react-native-paper';
 import { Image } from 'react-native';
-const cityOptions = ['Vancouver', 'Toronto', 'New York'];
+import { useState } from 'react';
 
 const modeOptions = [
   { label: 'running', icon: 'person-running' },
@@ -21,10 +21,16 @@ type ModeOption = {
 };
 
 export default function Index() {
-  const { city, setCity, mode, setMode } = useOptions();
+  const { city, cityOptions, setCity, mode, setMode } = useOptions();
   const { state } = useAppState();
+  const [selectedCity, setSelectedCity] = useState<string>(city);
 
   const onConfirmButtonClick = () => {
+    if (selectedCity !== city) {
+      setCity(selectedCity);
+      router.replace('/nav');
+      return;
+    }
     if (state === INITIAL) {
       if (router.canGoBack()) {
         router.back();
@@ -38,7 +44,7 @@ export default function Index() {
     }
   };
 
-  const renderIconButton = (modeOption: ModeOption) => {
+  const renderModeOption = (modeOption: ModeOption) => {
     return (
       <IconButton
         icon={() => <FontAwesome6 name={modeOption.icon} size={28} />}
@@ -51,12 +57,18 @@ export default function Index() {
     );
   };
 
-  const renderCityOption = (cityOption: string) => {
+  const renderCityOption = (cityOption: {
+    name: string;
+    center: [number, number];
+  }) => {
     return (
-      <Button onPress={() => setCity(cityOption)} style={{ flex: 1 }}>
+      <Button
+        onPress={() => setSelectedCity(cityOption.name)}
+        style={{ flex: 1 }}
+      >
         <View
           style={
-            cityOption === city && {
+            cityOption.name === selectedCity && {
               borderBottomWidth: 3,
               borderColor: '#ffb703',
             }
@@ -70,12 +82,13 @@ export default function Index() {
               textAlign: 'center',
             }}
           >
-            {cityOption}
+            {cityOption.name}
           </Text>
         </View>
       </Button>
     );
   };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.contentContainer}>
@@ -95,7 +108,7 @@ export default function Index() {
             renderItem={({ item }) => renderCityOption(item)}
             columnWrapperStyle={styles.iconButtonContainer}
             numColumns={3}
-            keyExtractor={(item) => item}
+            keyExtractor={(item) => item.name}
           />
         </View>
 
@@ -103,7 +116,7 @@ export default function Index() {
           <Text style={styles.heading}>Runner, walker, or cyclist?</Text>
           <FlatList
             data={modeOptions}
-            renderItem={({ item }) => renderIconButton(item)}
+            renderItem={({ item }) => renderModeOption(item)}
             columnWrapperStyle={styles.iconButtonContainer}
             numColumns={3}
             keyExtractor={(item) => item.label}

@@ -26,14 +26,10 @@ import InputDialog from '@/components/InputDialog';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CLOSE_PROXIMITY_DISTANCE = 500;
-const cityData: Record<string, [number, number]> = {
-  Toronto: [-79.3871, 43.6426],
-  Vancouver: [-123.13, 49.3],
-};
 
 export default function Nav() {
   const { state, setState } = useAppState();
-  const { city, mode, parameter, date: tripTime } = useOptions();
+  const { city, cityOptions, mode, parameter, date: tripTime } = useOptions();
   const [tripPoints, setTripPoints] = useState<TripPoints>({
     startPoint: null,
     endPoint: null,
@@ -42,7 +38,7 @@ export default function Nav() {
   const [instructions, setInstructions] = useState<Instruction[]>([]);
   const [previousRoute, setPreviousRoute] = useState<Route | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(
-    cityData[city as string]
+    cityOptions.find((option) => option.name === city)?.center
   );
   const [controlPanelOpen, setControlPanelOpen] = useState<boolean>(false);
   const [inPreview, setInPreview] = useState<boolean>(false);

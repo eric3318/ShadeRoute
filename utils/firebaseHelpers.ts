@@ -65,8 +65,24 @@ export const getDocuments = async (collectionName: string) => {
   try {
     const collectionRef = collection(db, collectionName);
     const snapshot = await getDocs(collectionRef);
-    const docs = snapshot.docs.map((doc) => doc.data());
+    const docs = snapshot.docs.map((doc) => {
+      return {
+        id: doc.id,
+        ...doc.data(),
+      };
+    });
     return docs;
+  } catch (err) {
+    return null;
+  }
+};
+
+export const getDocument = async (collectionName: string, docId: string) => {
+  try {
+    const collectionRef = collection(db, collectionName);
+    const docRef = doc(collectionRef, docId);
+    const snapshot = await getDoc(docRef);
+    return snapshot.data();
   } catch (err) {
     return null;
   }

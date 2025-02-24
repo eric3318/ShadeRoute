@@ -6,6 +6,7 @@ import { getDocuments } from '@/utils/firebaseHelpers';
 import DropdownPicker from '@/components/DropdownPicker';
 
 export type SavedRoute = Route & {
+  id: string;
   name: string;
   city: string;
   mode: string;
@@ -56,7 +57,8 @@ export default function RoutesSaved() {
         );
         const edgeDetails = route.details;
         return {
-          name: route.name ?? 'Untitled',
+          id: route.id,
+          name: route.name || 'Untitled',
           edgeDetails,
           path,
           city: route.city,
