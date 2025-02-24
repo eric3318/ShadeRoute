@@ -1,0 +1,26 @@
+{
+    "name": "data",
+    "version": "1.0.0",
+    "main": "server.ts",
+    "scripts": {
+        "test": "playwright test",
+        "start": "tsx watch src/server.ts"
+    },
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "devDependencies": {
+        "@types/node": "^22.13.4",
+        "prettier": "3.5.1",
+        "ts-proto": "^2.6.1",
+        "typescript": "^5.7.3"
+    },
+    "dependencies": {
+        "@types/express": "^5.0.0",
+        "dotenv": "^16.4.7",
+        "express": "^4.21.2",
+        "ioredis": "^5.5.0",
+        "playwright": "^1.42.1",
+        "tsx": "^4.19.2"
+    }
+}
