@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+message LatLng {
+  double latitude = 1;
+  double longitude = 2;
+}
+
+message BoundingBox {
+  LatLng northwest = 1;
+  LatLng southeast = 2;
+}
+
+message FetchRequest {
+    string request_id = 1;
+    BoundingBox bounding_box = 2;
+}
+
+message FetchResponse {
+    string request_id = 1;
+    string redis_key = 2;
+    Status status = 3;
+    enum Status {
+        FAIL = 0;
+        SUCCESS = 1;
+}
+}
+
+message Data {
+    int64 timestamp = 1;
+    string datetime_utc = 2;
+    BoundingBox bounding_box = 3;
+    repeated Edge edges = 4;
+}
+
+message Edge {
+    string id = 1;
+    repeated LatLng sample_points = 2;
+    double average_coverage = 3;
+}
+
