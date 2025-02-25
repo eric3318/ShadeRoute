@@ -1,43 +1,42 @@
-import { Request, Response } from 'express';
 import path from 'path';
 import { Input, Output } from '../lib/types';
-import redis from '../config/db';
 import { browser } from '../server';
+
 declare global {
     interface Window {
         inputData: Input;
-        shadeProfileOutput: Output;
+        outputData: Output;
     }
 }
 
-export const getData = async (req: Request<{}, {}, Input>, res: Response) => {
-    const { timestamp, data, jobId, resultId } = req.body;
+// export const getData = async (req: Request<{}, {}, Input>, res: Response) => {
+//     const { timestamp, data, jobId, resultId } = req.body;
 
-    if (!timestamp || !data || !jobId || !resultId) {
-        res.status(400).send({ message: 'Invalid request' });
-        return;
-    }
+//     if (!timestamp || !data || !jobId || !resultId) {
+//         res.status(400).send({ message: 'Invalid request' });
+//         return;
+//     }
 
-    res.status(202).send({ message: 'Processing started' });
+//     res.status(202).send({ message: 'Processing started' });
 
-    // add more validation logic here
+//     // add more validation logic here
 
-    const result = (await processInBackground(req.body)) as Output;
-    if (!result) {
-        return;
-    }
+//     const result = (await processInBackground(req.body)) as Output;
+//     if (!result) {
+//         return;
+//     }
 
-    const luaScript = `for i = 1, #KEYS - 1 do 
-                            redis.call("hset", KEYS[1], KEYS[i+1], ARGV[i]) 
-                        end`;
+//     const luaScript = `for i = 1, #KEYS - 1 do
+//                             redis.call("hset", KEYS[1], KEYS[i+1], ARGV[i])
+//                         end`;
 
-    const keys = Object.keys(result);
-    const values = Object.values(result).map((valueArr) => valueArr.join(','));
+//     const keys = Object.keys(result);
+//     const values = Object.values(result).map((valueArr) => valueArr.join(','));
 
-    await redis.eval(luaScript, keys.length + 1, `job:${jobId}:result_${resultId}`, ...keys, ...values);
-};
+//     await redis.eval(luaScript, keys.length + 1, `job:${jobId}:result_${resultId}`, ...keys, ...values);
+// };
 
-const processInBackground = async (input: Input) => {
+export const processInBackground = async (input: Input) => {
     let context;
     try {
         context = await browser.newContext();
@@ -54,11 +53,11 @@ const processInBackground = async (input: Input) => {
         const htmlPath = path.join(__dirname, '../scripts/shadow.html');
         await page.goto(`file://${htmlPath}`);
 
-        await page.waitForFunction(() => window.shadeProfileOutput !== undefined, {
+        await page.waitForFunction(() => window.outputData !== undefined, {
             timeout: 60000, // 1 minute timeout
         });
 
-        const result = await page.evaluate(() => window.shadeProfileOutput);
+        const result = await page.evaluate(() => window.outputData);
 
         await context.close();
 

@@ -1,8 +1,3 @@
-// export type Point = {
-//     lng: number;
-//     lat: number;
-// };
-
 export type BoxLimits = {
     minLon: number;
     maxLon: number;
@@ -17,17 +12,17 @@ export type Edge = {
 };
 
 export type Input = {
-    jobId: string;
-    resultId: number;
     timestamp: number;
-    data: {
-        limits: BoxLimits;
-        cells: {
-            edges: Edge[];
-            limits: BoxLimits;
-        }[];
-    }[];
+    data: Data;
 };
+
+export type Data = {
+    limits: BoxLimits;
+    cells: {
+        edges: Edge[];
+        limits: BoxLimits;
+    }[];
+}[];
 
 export type Output = {
     [index: string]: number[];
