@@ -1,5 +1,6 @@
 node_modules
 .env
 .dockerignore
+.DS_Store
 .gitignore
 *.md
