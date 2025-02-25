@@ -1,7 +1,7 @@
-import {Router} from "express";
-import { initiateFetch } from "../controllers/controllers";
+import { Router } from 'express';
+import { getData } from '../controllers/controllers';
 const router = Router();
 
-router.post("/", initiateFetch);
+router.post('/', getData);
 
 export default router;

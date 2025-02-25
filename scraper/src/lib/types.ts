@@ -17,7 +17,9 @@ export type Edge = {
 };
 
 export type Input = {
-    timeStamp: number;
+    jobId: string;
+    resultId: number;
+    timestamp: number;
     data: {
         limits: BoxLimits;
         cells: {
@@ -27,4 +29,6 @@ export type Input = {
     }[];
 };
 
-export type Output = {};
+export type Output = {
+    [index: string]: number[];
+};
