@@ -1,8 +1,7 @@
 import { Redis } from 'ioredis';
 
-const port = process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379;
-const host = process.env.REDIS_HOST || 'localhost';
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
-const redis = new Redis(port, host, { maxRetriesPerRequest: null });
+const redis = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
 
 export default redis;
