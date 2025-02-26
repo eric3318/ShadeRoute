@@ -1,4 +1,4 @@
-apiVersion: v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: scraper
@@ -14,9 +14,12 @@ spec:
             labels:
                 app: scraper
         spec:
+            imagePullSecrets:
+                - name: regcred
             containers:
                 - name: playwright
-                  image: playwright:latest
+                  image: hannie2/my-docker-registry:playwright
+                  imagePullPolicy: Always
                   ports:
                       - containerPort: 8081
                   env:
@@ -40,7 +43,7 @@ spec:
                   resources:
                       requests:
                           cpu: 500m
-                          memory: 500Mi
+                          memory: 1000Mi
                       limits:
                           cpu: 500m
-                          memory: 500Mi
+                          memory: 1000Mi
