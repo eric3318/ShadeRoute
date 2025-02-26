@@ -22,42 +22,18 @@ import com.graphhopper.util.TurnCostsConfig;
 
 public class ShadeWeightingFactory extends DefaultWeightingFactory {
 
-  private final ShadeDataManager shadeManager;
+  //  private final ShadeDataManager shadeManager;
   private final EncodingManager encodingManager;
   // buggy???
   private final BaseGraph graph;
 
   public ShadeWeightingFactory(BaseGraph graph,
-      EncodingManager encodingManager, ShadeDataManager shadeDataManager) {
+      EncodingManager encodingManager) {
     super(graph, encodingManager);
-    this.shadeManager = shadeDataManager;
+//    this.shadeManager = shadeDataManager;
     this.encodingManager = encodingManager;
     this.graph = graph;
   }
-
-/*  @Override
-  public Weighting createWeighting(Profile profile, PMap hints, boolean disableTurnCosts) {
-    if (!"foot_walking".equalsIgnoreCase(profile.getName()) && !"foot_running".equalsIgnoreCase(
-        profile.getName())) {
-      throw new IllegalArgumentException("Invalid profile name: " + profile.getName());
-    }
-
-//    String profileName = profile.getName();
-
-    String averageSpeedEncodedValue =
-//        profileName.equals("foot_walking") ? "foot_average_speed" : "run_average_speed";
-        "foot_average_speed";
-
-    *//* either migrate to using custom model, or create two new encoded values*//*
-    ShortestWeighting shortestWeighting = new ShortestWeighting(
-        encodingManager.getBooleanEncodedValue("foot_access"),
-        encodingManager.getDecimalEncodedValue(averageSpeedEncodedValue));
-
-    if ("preliminary".equals(profile.getName())) {
-      return shortestWeighting;
-    }
-    return new ShadedWeighting(shortestWeighting, shadeManager);
-  }*/
 
   @Override
   public Weighting createWeighting(Profile profile, PMap requestHints, boolean disableTurnCosts) {

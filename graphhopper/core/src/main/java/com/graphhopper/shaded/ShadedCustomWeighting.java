@@ -17,10 +17,13 @@
  */
 package com.graphhopper.shaded;
 
+import com.graphhopper.GraphHopper;
 import com.graphhopper.routing.weighting.TurnCostProvider;
 import com.graphhopper.routing.weighting.custom.CustomWeighting;
+import com.graphhopper.shaded.utils.RequestContext;
 import com.graphhopper.util.CustomModel;
 import com.graphhopper.util.EdgeIteratorState;
+import java.util.Map;
 import lombok.Setter;
 
 /**
@@ -75,16 +78,15 @@ import lombok.Setter;
 public class ShadedCustomWeighting extends CustomWeighting {
 
   /* Added for shade-based implementation*/
-  private final ShadeDataManager shadeManager;
   private final GraphStatus graphStatus;
-
-  @Setter
-  private static double shadePref = 0;
+  private final RequestDataStore dataStore;
 
   public ShadedCustomWeighting(TurnCostProvider turnCostProvider, Parameters parameters) {
     super(turnCostProvider, parameters);
-    this.shadeManager = new ShadeDataManager();
     this.graphStatus = GraphStatus.getInstance();
+    String requestId = RequestContext.getRequestId();
+    System.out.println("Request ID: " + requestId);
+    this.dataStore = ShadedGraphHopper.getRequestDataStore(requestId);
   }
 
   @Override
@@ -98,11 +100,10 @@ public class ShadedCustomWeighting extends CustomWeighting {
 //    }
 //    return Double.POSITIVE_INFINITY;
     return super.calcEdgeWeight(edgeState, reverse);
-
   }
 
   private double getEdgeWeight(double distanceWeight, double coverage) {
-    return distanceWeight * (1 - coverage * shadePref);
+    return distanceWeight * (1 - coverage * this.dataStore.getParameter());
   }
 
 }

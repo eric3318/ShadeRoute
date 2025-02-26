@@ -1,28 +1,26 @@
 package com.graphhopper.shaded;
 
+import com.graphhopper.GHRequest;
+import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.routing.WeightingFactory;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.Getter;
+import lombok.Data;
 
 public class ShadedGraphHopper extends GraphHopper {
 
-  private final ShadeDataManager shadeManager;
   private final GraphStatus graphStatus;
-  @Getter
-  private final EdgeCache edgeCache;
+  private final static Map<String, RequestDataStore> requestDataStoreMap = new HashMap<>();
 
   public ShadedGraphHopper() {
-    this.shadeManager = new ShadeDataManager();
     this.graphStatus = GraphStatus.getInstance();
-    this.edgeCache = new EdgeCache();
   }
 
   @Override
   protected WeightingFactory createWeightingFactory() {
-    return new ShadeWeightingFactory(super.getBaseGraph(), super.getEncodingManager(),
-        shadeManager);
+    return new ShadeWeightingFactory(super.getBaseGraph(), super.getEncodingManager());
   }
 
   @Override
@@ -35,22 +33,16 @@ public class ShadedGraphHopper extends GraphHopper {
     return GraphStatus.getInstance();
   }
 
-  public void attachShadeData(Map<Integer, List<Integer>> shadeData) {
-    shadeManager.generateEdgeShadeProfiles(shadeData);
+  public RequestDataStore createDataStore(String requestId, double fromLon, double fromLat,
+      double toLon, double toLat) {
+    RequestDataStore requestDataStore = new RequestDataStore(fromLon, fromLat, toLon, toLat);
+    requestDataStoreMap.put(requestId, requestDataStore);
+    return requestDataStore;
   }
 
-  public double getEdgeShade(int edgeId) {
-    return shadeManager.getShadeCoverage(edgeId);
+  public static RequestDataStore getRequestDataStore(String requestId) {
+    return requestDataStoreMap.get(requestId);
   }
-
-  public void clearShadeData() {
-    shadeManager.clearData();
-  }
-
-  public void setShadePref(double shadePref) {
-    ShadedCustomWeighting.setShadePref(shadePref);
-  }
-
 }
 
 

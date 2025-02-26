@@ -8,16 +8,16 @@ import lombok.Setter;
 
 public class ShadedWeighting1 extends AbstractAdjustedWeighting {
 
-  private final ShadeDataManager shadeManager;
+  private final RequestDataStore shadeManager;
   private static final String name = "shaded";
   private final GraphStatus graphStatus;
 
   @Setter
   private static double shadePref = 0;
 
-  public ShadedWeighting1(Weighting superWeighting, ShadeDataManager shadeDataManager) {
+  public ShadedWeighting1(Weighting superWeighting, RequestDataStore requestDataStore) {
     super(superWeighting);
-    this.shadeManager = shadeDataManager;
+    this.shadeManager = requestDataStore;
     this.graphStatus = GraphStatus.getInstance();
   }
 

@@ -23,8 +23,8 @@ public class RoutingController {
 
   @GetMapping("/edges")
   public ResponseEntity<?> getEdges(@RequestParam double fromLat, @RequestParam double fromLon,
-      @RequestParam double toLat, @RequestParam double toLon) {
-    return new ResponseEntity<>(routingService.getEdges(fromLat, fromLon, toLat, toLon),
+      @RequestParam double toLat, @RequestParam double toLon, @RequestParam String requestId) {
+    return new ResponseEntity<>(routingService.getEdges(fromLat, fromLon, toLat, toLon, requestId),
         HttpStatus.OK);
   }
 

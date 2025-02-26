@@ -6,14 +6,14 @@ import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
 import com.graphhopper.ResponsePath;
 import com.graphhopper.shaded.Edge;
-import com.graphhopper.shaded.EdgeCache;
+import com.graphhopper.shaded.RequestDataStore;
+import com.graphhopper.shaded.EdgeReference;
 import com.graphhopper.shaded.ShadedGraphHopper;
 import com.graphhopper.shaded.utils.GraphUtil;
+import com.graphhopper.shaded.utils.RequestContext;
 import com.graphhopper.storage.Graph;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.storage.index.LocationIndex.Visitor;
-import com.graphhopper.util.DistanceCalc;
-import com.graphhopper.util.DistanceCalcEarth;
 import com.graphhopper.util.EdgeIteratorState;
 import com.graphhopper.util.FetchMode;
 import com.graphhopper.util.Instruction;
@@ -52,13 +52,13 @@ public class RoutingService {
 
   public RouteResponse getRoute(RouteRequest routeRequest) {
     ShadedGraphHopper shadedGraphHopper = (ShadedGraphHopper) hopper;
+    // store requestId for the current thread
+    RequestContext.setRequestId(routeRequest.requestId());
+    RequestDataStore dataStore = ShadedGraphHopper.getRequestDataStore(routeRequest.requestId());
+    dataStore.generateEdgeShadeProfiles(routeRequest.data());
 
-    shadedGraphHopper.attachShadeData(routeRequest.shadeData());
-    shadedGraphHopper.setShadePref(routeRequest.shadePref());
-    EdgeCache edgeCache = shadedGraphHopper.getEdgeCache();
-
-    GHRequest ghRequest = buildGHRequest(routeRequest.fromLat(), routeRequest.fromLon(),
-        routeRequest.toLat(), routeRequest.toLon(), Profiles.getProfileName(routeRequest.mode()),
+    GHRequest ghRequest = buildGHRequest(dataStore.getFromLat(), dataStore.getFromLon(),
+        dataStore.getToLat(), dataStore.getToLon(), Profiles.getProfileName(routeRequest.mode()),
         Algorithms.ASTAR);
 
     ghRequest.setPathDetails(Arrays.asList(Parameters.Details.EDGE_ID, Details.DISTANCE));
@@ -77,12 +77,14 @@ public class RoutingService {
 
     List<EdgeDetail> edgeDetails = new ArrayList<>();
 
+    EdgeReference edgeReference = dataStore.getReference();
+
     for (int i = 0; i < edgeIdDetails.size(); i++) {
       Integer edgeId = (Integer) edgeIdDetails.get(i).getValue();
       double distance = (double) distanceDetails.get(i).getValue();
-      double shadeCoverage = shadedGraphHopper.getEdgeShade(edgeId);
+      double shadeCoverage = dataStore.getShadeCoverage(edgeId);
       edgeDetails.add(
-          new EdgeDetail(edgeId, edgeCache.get(edgeId).points(), shadeCoverage, distance));
+          new EdgeDetail(edgeId, edgeReference.get(edgeId).points(), shadeCoverage, distance));
     }
 
     List<Double[]> pathPoints = new ArrayList<>();
@@ -110,7 +112,6 @@ public class RoutingService {
     RouteResponse response = new RouteResponse(pathPoints, edgeDetails, bestPath.getRouteWeight(),
         bestPath.getDistance(), instructions);
 
-    shadedGraphHopper.clearShadeData();
     return response;
   }
 
@@ -127,7 +128,12 @@ public class RoutingService {
     return ghRequest;
   }
 
-  public List<Block> getEdges(double fromLat, double fromLon, double toLat, double toLon) {
+  public List<Block> getEdges(double fromLat, double fromLon, double toLat, double toLon,
+      String requestId) {
+    ShadedGraphHopper shadedGraphHopper = (ShadedGraphHopper) hopper;
+    RequestDataStore dataStore = shadedGraphHopper.createDataStore(requestId, fromLon, fromLat,
+        toLon, toLat);
+
     GHRequest prelimRequest = buildGHRequest(fromLat, fromLon, toLat, toLon,
         "preliminary",
         Algorithms.ASTAR);
@@ -146,8 +152,7 @@ public class RoutingService {
     List<BBox> blocks = GraphUtil.getBBoxCells(bounds[0], bounds[1], bounds[2],
         bounds[3], 1600, 900);
     Graph graph = hopper.getBaseGraph();
-    EdgeCache edgeCache = ((ShadedGraphHopper) hopper).getEdgeCache();
-    Set<Integer> edgeSet = new HashSet<>();
+    EdgeReference edgeReference = dataStore.getReference();
     List<Edge> cellEdges = new ArrayList<>();
 //    DistanceCalc calc = new DistanceCalcEarth();
 
@@ -155,7 +160,7 @@ public class RoutingService {
       EdgeIteratorState edgeState = graph.getEdgeIteratorState(i, Integer.MIN_VALUE);
       int edgeId = edgeState.getEdge();
 
-      if (edgeSet.contains(edgeId)) {
+      if (edgeReference.contains(edgeId)) {
         return;
       }
 
@@ -178,8 +183,7 @@ public class RoutingService {
       }
 
       Edge edge = new Edge(edgeId, edgeState.getDistance(), points);
-      edgeSet.add(edgeId);
-      edgeCache.put(edgeId, edge);
+      edgeReference.put(edgeId, edge);
       cellEdges.add(edge);
     };
 

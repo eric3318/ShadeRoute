@@ -1,11 +1,11 @@
 package com.graphhopper.shaded;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class EdgeCache {
+public class EdgeReference {
 
-  private static final Map<Integer, Edge> cache = new HashMap<>();
+  private static final Map<Integer, Edge> cache = new ConcurrentHashMap<>();
 
   public void put(int edgeId, Edge edge) {
     cache.put(edgeId, edge);

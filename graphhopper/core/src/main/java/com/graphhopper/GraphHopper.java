@@ -1229,7 +1229,7 @@ public class GraphHopper {
         return createRouter().route(request);
     }
 
-    private Router createRouter() {
+    protected Router createRouter() {
         if (baseGraph == null || !fullyLoaded)
             throw new IllegalStateException("Do a successful call to load or importOrLoad before routing");
         if (baseGraph.isClosed())
