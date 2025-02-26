@@ -1,8 +1,8 @@
+import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import { Input, Data } from './lib/types';
 import { requestQueue } from './config/mq';
 import { v4 as uuidv4 } from 'uuid';
-import redis from './config/db';
 
 const app = express();
 
