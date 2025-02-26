@@ -11,15 +11,16 @@ const app = express();
 app.use(cors({
     origin: '*',
 }));
-
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
-redis.subscribe('job:*', (err, count) => {
+const redisSub = redis.duplicate();
+
+redisSub.subscribe('job:*', (err, count) => {
     if (err) console.error(err);
 });
 
-redis.on('message', (channel, message) => {
+redisSub.on('message', (channel, message) => {
     const jobId = channel.split('job:')[1];
     io.to(jobId).emit('job:completed', jobId);
 });
