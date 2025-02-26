@@ -39,6 +39,13 @@ async function initBrowser() {
 //                             redis.call("hset", KEYS[1], KEYS[i+1], ARGV[i])
 //                         end`;
 
+const luaScript = `local currentCount = redis.call("incr", KEYS[1])
+local totalCount = redis.call("get", KEYS[2])
+if currentCount == totalCount then
+    redis.call("publish", KEYS[3], "completed")
+    redis.call("del", KEYS[1], KEYS[2])
+end`;
+
 async function initWorker() {
     worker = new Worker<Input>(
         'request-queue',
@@ -49,16 +56,21 @@ async function initWorker() {
         { connection: redis, concurrency: 1 },
     );
 
-    worker.on('completed', async (jobId, result: Output) => {
-        console.log(`Job ${jobId} completed`);
-        // const keys = Object.keys(result);
-        // const values = Object.values(result).map((valueArr) => valueArr.join(','));
+    worker.on('completed', async (job) => {
+        if (job && job.id) {
+            const baseJobId = job.id.split('-result_')[0];
+            await redis.eval(luaScript, 3, `job:${baseJobId}:completed`, `job:${baseJobId}:total`, `job:${baseJobId}`);
+            // const keys = Object.keys(result);
+            // const values = Object.values(result).map((valueArr) => valueArr.join(','));
 
-        // await redis.eval(luaScript, keys.length + 1, `job:${jobId}`, ...keys, ...values);
+            // await redis.eval(luaScript, keys.length + 1, `job:${jobId}`, ...keys, ...values);
+        }
     });
 
-    worker.on('failed', (jobId, error) => {
-        console.error(`Job ${jobId} failed with error ${error}`);
+    worker.on('failed', (job) => {
+        if (job) {
+            console.error(`Job ${job.id} failed with error ${job.failedReason}`);
+        }
     });
 }
 
