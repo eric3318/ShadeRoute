@@ -2,10 +2,8 @@ package org.shade.routing.controller;
 
 
 import lombok.RequiredArgsConstructor;
-import org.shade.routing.config.Modes;
-import org.shade.routing.dto.RouteRequest;
+import org.shade.routing.dto.RouteRequestDto;
 import org.shade.routing.service.RoutingService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,24 +19,19 @@ public class RoutingController {
 
   private final RoutingService routingService;
 
-  @GetMapping("/edges")
-  public ResponseEntity<?> getEdges(@RequestParam double fromLat, @RequestParam double fromLon,
-      @RequestParam double toLat, @RequestParam double toLon, @RequestParam String requestId) {
-    return new ResponseEntity<>(routingService.getEdges(fromLat, fromLon, toLat, toLon, requestId),
-        HttpStatus.OK);
-  }
-
   @PostMapping("/route")
-  public ResponseEntity<?> route(@RequestBody RouteRequest routeRequest) {
-    if (!routeRequest.mode().equals(Modes.WALKING) && !routeRequest.mode().equals(Modes.RUNNING)
-        && !routeRequest.mode().equals(Modes.BIKING)) {
-      return new ResponseEntity<>("Invalid mode", HttpStatus.BAD_REQUEST);
-    }
-    return new ResponseEntity<>(routingService.getRoute(routeRequest), HttpStatus.OK);
+  public ResponseEntity<?> route(@RequestBody RouteRequestDto routeRequestDto) {
+    return ResponseEntity.ok(routingService.init(routeRequestDto));
   }
 
-//  @PostMapping("/route-dynamic")
-//  public ResponseEntity<?> route_dynamic(@RequestBody RouteRequest routeRequest) {
-//    return new ResponseEntity<>(routingService.getRouteDynamic(routeRequest), HttpStatus.OK);
-//  }
+  @PostMapping("/cb")
+  public ResponseEntity<?> callback(@RequestParam String jobId) {
+    routingService.callback(jobId);
+    return ResponseEntity.ok().build();
+  }
+
+  @GetMapping("/results")
+  public ResponseEntity<?> getRoutingResult(@RequestParam String jobId) {
+    return ResponseEntity.ok(routingService.getResult(jobId));
+  }
 }
