@@ -34,7 +34,7 @@ public class GraphHopperConfig {
         createProfile(Modes.RUNNING),
         createProfile(Modes.BIKING));
     hopper.importOrLoad();
-    GraphStatus graphStatus = hopper.getGraphStatus();
+    GraphStatus graphStatus = GraphStatus.getInstance();
     if (!graphStatus.isRouting()) {
       graphStatus.setRouting(true);
     }
