@@ -3,11 +3,23 @@ import { SavedRoute } from '@/app/(tabs)/routes-saved';
 import { format } from 'date-fns';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { Button, IconButton } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 type RouteListItemProps = {
   route: SavedRoute;
 };
 
 export default function RouteListItem({ route }: RouteListItemProps) {
+  const router = useRouter();
+
+  const onRoutePress = () => {
+    router.push({
+      pathname: '/(tabs)/route-details',
+      params: {
+        routeId: route.id,
+      },
+    });
+  };
+
   return (
     <View style={styles.container}>
       <Image
@@ -24,14 +36,17 @@ export default function RouteListItem({ route }: RouteListItemProps) {
         <Text style={{ fontSize: 12 }}>{route.mode}</Text>
       </View>
       <View style={styles.iconContainer}>
-        <IconButton
+        {/* <IconButton
+          onPress={onRoutePress}
           icon={() => (
             <FontAwesome5 name="arrow-circle-right" size={22} color="#023047" />
           )}
-        />
-        <IconButton
-          icon={() => <FontAwesome5 name="trash" size={22} color="#ef233c" />}
-        />
+        /> */}
+        <Button
+          mode="contained"
+          onPress={onRoutePress}
+          icon="arrow-right"
+        ></Button>
       </View>
     </View>
   );
@@ -41,9 +56,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    columnGap: 18,
+    columnGap: 12,
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 22,
+    borderRadius: 32,
+    backgroundColor: 'white',
   },
   image: {
     width: 100,

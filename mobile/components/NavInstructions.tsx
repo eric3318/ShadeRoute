@@ -29,7 +29,7 @@ export default function NavInstructions({
   onInfoChange,
 }: NavInstructionsProps) {
   const [currentInstruction, setCurrentInstruction] =
-    useState<Instruction | null>(instructions[0]);
+    useState<Instruction | null>(null);
   const { location, setLocation } = useLocation();
   const [index, setIndex] = useState(0);
   const [startTime, setStartTime] = useState<Date>(new Date());
@@ -79,14 +79,16 @@ export default function NavInstructions({
     if (currentInstruction) {
       speakInstruction(currentInstruction);
     }
-  }, [currentInstruction?.name]);
+  }, [currentInstruction]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const currentTime = new Date();
-      const timeElapsed = currentTime.getTime() - startTime.getTime();
+      const timeElapsed = (currentTime.getTime() - startTime.getTime()) / 1000;
       const currentSpeed = distanceTraveled / timeElapsed;
-      const arrivalTime = startTime.getTime() + totalDistance / currentSpeed;
+      const arrivalTime =
+        startTime.getTime() +
+        (totalDistance / (currentSpeed || 4828 / 3600)) * 1000;
       setSpeed(currentSpeed);
       onInfoChange(distanceTraveled, currentSpeed, arrivalTime);
     }, 1000);

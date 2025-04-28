@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import RouteListItem from '@/components/RouteListItem';
 import { getDocuments } from '@/utils/firebaseHelpers';
 import DropdownPicker from '@/components/DropdownPicker';
-
+import { Button, IconButton } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 export type SavedRoute = Route & {
   id: string;
   name: string;
@@ -21,11 +22,12 @@ const cityFilterOptions = ['All', 'Vancouver', 'Toronto', 'New York'];
 const modeFilterOptions = ['All', 'walking', 'running', 'biking'];
 
 export default function RoutesSaved() {
+  const router = useRouter();
   const [routes, setRoutes] = useState<SavedRoute[]>([]);
   const [filteredRoutes, setFilteredRoutes] = useState<SavedRoute[]>([]);
   const [sortBy, setSortBy] = useState<string>(sortByOptions[0]);
-  const [cityFilter, setCityFilter] = useState<string>(cityFilterOptions[0]);
-  const [modeFilter, setModeFilter] = useState<string>(modeFilterOptions[0]);
+  const [cityFilter, setCityFilter] = useState<string>('All');
+  const [modeFilter, setModeFilter] = useState<string>('All');
   const [dropdownStatus, setDropdownStatus] = useState<{
     sortBy: boolean;
     city: boolean;
@@ -45,7 +47,7 @@ export default function RoutesSaved() {
       const data = await getDocuments('routes');
 
       if (!data) {
-        console.log('No data found');
+        console.error('No data found');
         return;
       }
 
@@ -145,6 +147,15 @@ export default function RoutesSaved() {
     });
   };
 
+  const onRoutePress = (routeId: string) => {
+    router.push({
+      pathname: '/(tabs)/route-details',
+      params: {
+        routeId,
+      },
+    });
+  };
+
   // const getSavedRoutes = async () => {
   //   try {
   //     const keys = await AsyncStorage.getAllKeys();
@@ -171,6 +182,8 @@ export default function RoutesSaved() {
         <DropdownPicker
           options={sortByOptions}
           value={sortBy}
+          defaultValue={sortByOptions[0]}
+          icon="sort"
           onValueChange={onSortByChange}
           visible={dropdownStatus.sortBy}
           onVisibilityChange={(newStatus) =>
@@ -180,6 +193,9 @@ export default function RoutesSaved() {
         <DropdownPicker
           options={cityFilterOptions}
           value={cityFilter}
+          defaultValue={cityFilterOptions[0]}
+          placeholder="City"
+          icon="filter-variant"
           onValueChange={(value) => onFilterChange(value, 'city')}
           visible={dropdownStatus.city}
           onVisibilityChange={(newStatus) =>
@@ -189,6 +205,9 @@ export default function RoutesSaved() {
         <DropdownPicker
           options={modeFilterOptions}
           value={modeFilter}
+          defaultValue={modeFilterOptions[0]}
+          placeholder="Mode"
+          icon="filter-variant"
           onValueChange={(value) => onFilterChange(value, 'mode')}
           visible={dropdownStatus.mode}
           onVisibilityChange={(newStatus) =>
@@ -200,16 +219,27 @@ export default function RoutesSaved() {
 
       <FlatList
         data={filteredRoutes}
-        renderItem={({ item }) => <RouteListItem route={item} />}
-        ItemSeparatorComponent={() => (
-          <View
-            style={{
-              borderBottomWidth: 1,
-              borderColor: '#E0E0E0',
-              height: 2,
+        renderItem={({ item }) => (
+          <Button
+            onPress={() => onRoutePress(item.id)}
+            theme={{
+              colors: {
+                primary: '#8ecae6',
+              },
             }}
-          />
+            labelStyle={{
+              marginHorizontal: 0,
+              marginVertical: 0,
+            }}
+            style={{
+              borderRadius: 32,
+            }}
+          >
+            <RouteListItem route={item} />
+          </Button>
         )}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        style={{ marginTop: 12 }}
       />
     </View>
   );

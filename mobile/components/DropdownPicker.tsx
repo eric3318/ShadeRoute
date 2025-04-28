@@ -1,16 +1,18 @@
 import { Picker } from '@react-native-picker/picker';
 import { useState } from 'react';
 import { DimensionValue, View } from 'react-native';
-import { Button } from 'react-native-paper';
 import { StyleSheet } from 'react-native';
+import { Button } from 'react-native-paper';
 
 type DropdownPickerProps = {
   options: string[];
   visible?: boolean;
   onVisibilityChange?: (visible: boolean) => void;
   value: string;
-  defaultValue?: string;
+  defaultValue: string;
+  placeholder?: string;
   onValueChange: (value: string) => void;
+  icon?: string;
   width?: DimensionValue;
   color?: string;
   dropdownWidth?: DimensionValue;
@@ -23,8 +25,10 @@ export default function DropdownPicker({
   onVisibilityChange,
   value,
   defaultValue,
+  placeholder,
   onValueChange,
   color = '#023047',
+  icon,
   width = '100%',
   dropdownWidth = 200,
   sameWidth = false,
@@ -47,14 +51,16 @@ export default function DropdownPicker({
   return (
     <View style={styles.container}>
       <Button
-        mode="outlined"
+        mode="text"
         textColor={color}
         onPress={toggleVisible}
-        labelStyle={styles.buttonLabel}
-        style={{ width: width }}
+        icon={icon}
+        buttonColor={value !== defaultValue ? '#8ecae6' : ''}
+        style={[{ width: width }]}
       >
-        {value}
+        {value === defaultValue ? (placeholder ?? value) : value}
       </Button>
+
       {(controlled ? visible : internalVisible) && (
         <Picker
           selectedValue={value}
@@ -77,9 +83,7 @@ const styles = StyleSheet.create({
     flexBasis: 0,
     flexGrow: 1,
   },
-  buttonLabel: {
-    marginHorizontal: 0,
-  },
+
   picker: {
     position: 'absolute',
     top: 52,

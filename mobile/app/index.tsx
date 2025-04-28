@@ -137,7 +137,7 @@ export default function Index() {
           <Button
             onPress={() => router.push('/routes-saved')}
             buttonColor="transparent"
-            textColor="white"
+            // textColor="white"
             style={{ alignSelf: 'center' }}
           >
             View saved routes
@@ -151,7 +151,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FB8500',
+    // backgroundColor: '#FB8500',
   },
   contentContainer: {
     flex: 1,
@@ -166,19 +166,19 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
+    // color: 'white',
   },
   logo: {
     width: 150,
     height: 150,
     padding: 12,
-    boxShadow: '0 0 6px 0 rgba(0, 0, 0, 0.5)',
-    borderRadius: '25%',
+    // boxShadow: '0 0 6px 0 rgba(0, 0, 0, 0.5)',
+    // borderRadius: '25%',
   },
   heading: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    // color: 'white',
   },
   iconButtonContainer: {
     columnGap: 12,

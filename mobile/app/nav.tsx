@@ -52,7 +52,7 @@ export default function Nav() {
   } | null>(null);
   const [inputDialogVisible, setInputDialogVisible] = useState<boolean>(false);
 
-  const onSaveRoute = async (name: string) => {
+  const saveRoute = async (name?: string) => {
     const path = route?.path.map((point) => {
       return { longitude: point[0], latitude: point[1] };
     });
@@ -66,7 +66,7 @@ export default function Nav() {
     });
 
     const routeData = {
-      name,
+      ...(name && { name }),
       startPoint: tripPoints.startPoint,
       endPoint: tripPoints.endPoint,
       path,
@@ -160,7 +160,6 @@ export default function Nav() {
     }
 
     try {
-      console.log(tripTime?.getTime());
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_DATA_SERVER_URL}/api/shade`,
         {
@@ -300,7 +299,8 @@ export default function Nav() {
     }
   };
 
-  const onEndTripButtonClick = () => {
+  const onEndTripButtonClick = async () => {
+    await saveRoute();
     setTripPoints({
       startPoint: null,
       endPoint: null,
@@ -363,7 +363,7 @@ export default function Nav() {
   };
 
   const onInputDialogSave = async (name: string) => {
-    await onSaveRoute(name);
+    await saveRoute(name);
     onInputDialogClose();
   };
 
@@ -373,11 +373,6 @@ export default function Nav() {
 
   return (
     <View style={styles.container}>
-      <InputDialog
-        visible={inputDialogVisible}
-        onSave={onInputDialogSave}
-        onClose={onInputDialogClose}
-      />
       {state === INITIAL && !inPreview && (
         <View style={styles.promptContainer}>
           <Text style={styles.promptText}>
@@ -442,6 +437,14 @@ export default function Nav() {
         points={tripPoints}
         onPointChange={onPointChange}
       />
+
+      <InputDialog
+        title="Saving route..."
+        description="Please give it a name: "
+        visible={inputDialogVisible}
+        onSave={onInputDialogSave}
+        onClose={onInputDialogClose}
+      />
     </View>
   );
 }
@@ -479,19 +482,7 @@ const styles = StyleSheet.create({
     bottom: '5%',
     left: 0,
     right: 0,
+    marginHorizontal: 18,
     zIndex: 1,
-  },
-  previewControlButtonContainer: {
-    position: 'absolute',
-    bottom: '5%',
-    left: 0,
-    right: 0,
-    zIndex: 1,
-    marginVertical: 24,
-    marginHorizontal: 12,
-    rowGap: 12,
-  },
-  previewControlButton: {
-    backgroundColor: '#FF6403',
   },
 });
