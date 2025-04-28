@@ -19,20 +19,18 @@ import com.graphhopper.util.CustomModel;
 import com.graphhopper.util.PMap;
 import com.graphhopper.util.Parameters;
 import com.graphhopper.util.TurnCostsConfig;
+import java.util.Map;
 
 public class ShadeWeightingFactory extends DefaultWeightingFactory {
 
-  //  private final ShadeDataManager shadeManager;
   private final EncodingManager encodingManager;
-  // buggy???
-  private final BaseGraph graph;
+  private final Map<Integer, Double> shadeData;
 
   public ShadeWeightingFactory(BaseGraph graph,
-      EncodingManager encodingManager) {
+      EncodingManager encodingManager, Map<Integer, Double> shadeData) {
     super(graph, encodingManager);
-//    this.shadeManager = shadeDataManager;
     this.encodingManager = encodingManager;
-    this.graph = graph;
+    this.shadeData = shadeData;
   }
 
   @Override
@@ -85,7 +83,7 @@ public class ShadeWeightingFactory extends DefaultWeightingFactory {
       }
 
       weighting = CustomModelHelper.createWeighting(encodingManager, turnCostProvider,
-          mergedCustomModel);
+          mergedCustomModel, shadeData);
 
     } else if ("shortest".equalsIgnoreCase(weightingStr)) {
       throw new IllegalArgumentException(

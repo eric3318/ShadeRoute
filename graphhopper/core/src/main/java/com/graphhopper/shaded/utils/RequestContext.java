@@ -1,19 +1,21 @@
 package com.graphhopper.shaded.utils;
 
+import com.graphhopper.shaded.JobMetadata;
+
 public class RequestContext {
 
-  private static final ThreadLocal<String> requestIdHolder = new ThreadLocal<>();
+  private static final ThreadLocal<JobMetadata> metadataHolder = new ThreadLocal<>();
 
-  public static void setRequestId(String requestId) {
-    requestIdHolder.set(requestId);
+  public static void setMetadata(JobMetadata metadata) {
+    metadataHolder.set(metadata);
   }
 
-  public static String getRequestId() {
-    return requestIdHolder.get();
+  public static JobMetadata getMetadata() {
+    return metadataHolder.get();
   }
 
-  public static void clearRequestId() {
-    requestIdHolder.remove();
+  public static void clearMetadata() {
+    metadataHolder.remove();
   }
 
 }

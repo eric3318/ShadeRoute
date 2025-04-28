@@ -3,24 +3,59 @@ package com.graphhopper.shaded;
 import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
 import com.graphhopper.GraphHopper;
+import com.graphhopper.routing.DefaultWeightingFactory;
 import com.graphhopper.routing.WeightingFactory;
+import com.graphhopper.shaded.utils.RequestContext;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.api.sync.RedisCommands;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 import lombok.Data;
 
 public class ShadedGraphHopper extends GraphHopper {
 
   private final GraphStatus graphStatus;
-  private final static Map<String, RequestDataStore> requestDataStoreMap = new HashMap<>();
+  private final RedisCommands<String, String> commands;
 
   public ShadedGraphHopper() {
     this.graphStatus = GraphStatus.getInstance();
+    RedisClient client = RedissClient.getInstance();
+    StatefulRedisConnection<String, String> connection = client.connect();
+    this.commands = connection.sync();
   }
 
   @Override
   protected WeightingFactory createWeightingFactory() {
-    return new ShadeWeightingFactory(super.getBaseGraph(), super.getEncodingManager());
+    if (!graphStatus.isRouting()) {
+      return new DefaultWeightingFactory(super.getBaseGraph(), getEncodingManager());
+    }
+
+    JobMetadata metadata = RequestContext.getMetadata();
+
+    if (metadata == null) {
+      return new DefaultWeightingFactory(super.getBaseGraph(), getEncodingManager());
+    }
+
+    return new ShadeWeightingFactory(super.getBaseGraph(), super.getEncodingManager(),
+        retrieveShadeData(
+            metadata.getId())
+    );
+  }
+
+  private Map<Integer, Double> retrieveShadeData(String jobId) {
+    String key = "job:" + jobId + ":result";
+    Map<String, String> data = commands.hgetall(key);
+
+    return data.entrySet().stream()
+        .collect(Collectors.toMap(
+            entry -> Integer.parseInt(entry.getKey()),
+            entry -> Double.parseDouble(entry.getValue())
+        ));
   }
 
   @Override
@@ -28,21 +63,5 @@ public class ShadedGraphHopper extends GraphHopper {
     super.cleanUp();
     graphStatus.setRouting(true);
   }
-
-  public GraphStatus getGraphStatus() {
-    return GraphStatus.getInstance();
-  }
-
-  public RequestDataStore createDataStore(String requestId, double fromLon, double fromLat,
-      double toLon, double toLat) {
-    RequestDataStore requestDataStore = new RequestDataStore(fromLon, fromLat, toLon, toLat);
-    requestDataStoreMap.put(requestId, requestDataStore);
-    return requestDataStore;
-  }
-
-  public static RequestDataStore getRequestDataStore(String requestId) {
-    return requestDataStoreMap.get(requestId);
-  }
 }
-
 

@@ -8,8 +8,6 @@ public class GraphUtil {
 
   private static final int TILE_SIZE = 512;
   private static final int BUILDING_ZOOM = 15;
-//  public static final int VIEWPORT_WIDTH_PX = 1920;
-//  public static final int VIEWPORT_HEIGHT_PX = 1080;
 
   public static double longitudeToPixel(double lng) {
     return ((lng + 180.0) / 360.0 * Math.pow(2.0, BUILDING_ZOOM)) * TILE_SIZE;

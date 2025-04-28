@@ -1,0 +1,14 @@
+server:
+  port: 8080
+
+graphhopper:
+  osm-path: /app/static/british-columbia-latest.osm.pbf
+  graph-location: /app/graph-cache
+
+#graphhopper:
+#  osm-path: src/main/resources/static/british-columbia-latest.osm.pbf
+#  graph-location: target/graph-cache
+
+scraping-service-url: http://master-service:3000/api/jobs
+
+#scraping-service-url: http://localhost:3000/api/jobs
