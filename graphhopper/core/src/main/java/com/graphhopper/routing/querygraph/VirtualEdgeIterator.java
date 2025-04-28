@@ -50,6 +50,17 @@ public class VirtualEdgeIterator implements EdgeIterator {
     return this;
   }
 
+  public int getOriginalEdgeKey(int virtualEdgeId) {
+    EdgeIteratorState edgeIteratorState = edges.stream().filter((e) -> e.getEdge() == virtualEdgeId)
+        .findFirst().orElseThrow();
+
+    if (edgeIteratorState instanceof VirtualEdgeIteratorState) {
+      return ((VirtualEdgeIteratorState) edgeIteratorState).getOriginalEdgeKey();
+    }
+
+    return edgeIteratorState.getEdgeKey();
+  }
+
   @Override
   public boolean next() {
     current++;
@@ -61,9 +72,9 @@ public class VirtualEdgeIterator implements EdgeIterator {
 
   @Override
   public EdgeIteratorState detach(boolean reverse) {
-      if (reverse) {
-          throw new IllegalStateException("Not yet supported");
-      }
+    if (reverse) {
+      throw new IllegalStateException("Not yet supported");
+    }
     return getCurrentEdge();
   }
 
