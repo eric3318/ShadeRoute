@@ -17,14 +17,15 @@
  */
 package com.graphhopper.shaded;
 
-import com.graphhopper.GraphHopper;
+import com.graphhopper.routing.querygraph.VirtualEdgeIterator;
 import com.graphhopper.routing.weighting.TurnCostProvider;
 import com.graphhopper.routing.weighting.custom.CustomWeighting;
 import com.graphhopper.shaded.utils.RequestContext;
 import com.graphhopper.util.CustomModel;
 import com.graphhopper.util.EdgeIteratorState;
+import com.graphhopper.util.GHUtility;
+import java.util.HashMap;
 import java.util.Map;
-import lombok.Setter;
 
 /**
  * The CustomWeighting allows adjusting the edge weights relative to those we'd obtain for a given
@@ -77,33 +78,37 @@ import lombok.Setter;
  */
 public class ShadedCustomWeighting extends CustomWeighting {
 
-  /* Added for shade-based implementation*/
-  private final GraphStatus graphStatus;
-  private final RequestDataStore dataStore;
+  private final Map<Integer, Double> shadeData;
+  private final double parameter;
 
-  public ShadedCustomWeighting(TurnCostProvider turnCostProvider, Parameters parameters) {
+  public ShadedCustomWeighting(TurnCostProvider turnCostProvider, Parameters parameters,
+      Map<Integer, Double> shadeData) {
     super(turnCostProvider, parameters);
-    this.graphStatus = GraphStatus.getInstance();
-    String requestId = RequestContext.getRequestId();
-    System.out.println("Request ID: " + requestId);
-    this.dataStore = ShadedGraphHopper.getRequestDataStore(requestId);
+    this.shadeData = shadeData;
+    this.parameter = RequestContext.getMetadata().getParameter();
   }
 
   @Override
   public double calcEdgeWeight(EdgeIteratorState edgeState, boolean reverse) {
-//    if (!graphStatus.isRouting()) {
-//      return super.calcEdgeWeight(edgeState, reverse);
-//    }
-//    if (shadeManager.withinRange(edgeState)) {
-//      return getEdgeWeight(edgeState.getDistance(),
-//          shadeManager.getShadeCoverage(edgeState));
-//    }
-//    return Double.POSITIVE_INFINITY;
-    return super.calcEdgeWeight(edgeState, reverse);
+    Integer edgeId = edgeState.getEdge();
+    Integer coverageLookUpKey;
+
+    if (!(edgeState instanceof VirtualEdgeIterator)) {
+      coverageLookUpKey = edgeId;
+    } else {
+      VirtualEdgeIterator v = (VirtualEdgeIterator) edgeState;
+      int originalEdgeKey = v.getOriginalEdgeKey(edgeState.getEdge());
+      coverageLookUpKey = GHUtility.getEdgeFromEdgeKey(originalEdgeKey);
+    }
+
+    if (!shadeData.containsKey(coverageLookUpKey)) {
+      return Double.POSITIVE_INFINITY;
+    }
+
+    return getEdgeWeight(edgeState.getDistance(), shadeData.get(coverageLookUpKey));
   }
 
   private double getEdgeWeight(double distanceWeight, double coverage) {
-    return distanceWeight * (1 - coverage * this.dataStore.getParameter());
+    return distanceWeight * (1 - coverage * parameter);
   }
-
 }
