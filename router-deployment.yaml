@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: router
+  labels:
+    app: router
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: router
+  template:
+    metadata:
+      labels:
+        app: router
+    spec:
+      imagePullSecrets:
+          - name: regcred
+      nodeSelector:
+          agentpool: apppool
+      tolerations:
+          - key: 'kubernetes.azure.com/scalesetpriority'
+            operator: 'Equal'
+            value: 'spot'
+            effect: 'NoSchedule'
+      containers:
+          - name: router
+            image: hannie2/my-docker-registry:router
+            imagePullPolicy: Always
+            ports:
+                - containerPort: 8080
+            env:
+                - name: PORT
+                  value: '8080'
+                - name: REDIS_URL
+                  value: 'redis://redis-service:6379'
+                - name: REDIS_HOSTNAME
+                  value: 'redis-service'
+            resources:
+                requests:
+                    cpu: 2000m
+                    memory: 2000Mi
+                limits:
+                    cpu: 2000m
+                    memory: 2000Mi 

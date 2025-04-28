@@ -1,21 +1,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: scraper
+    name: worker
     labels:
-        app: scraper
+        app: worker
 spec:
-    replicas: 3
+    replicas: 4
     selector:
         matchLabels:
-            app: scraper
+            app: worker
     template:
         metadata:
             labels:
-                app: scraper
+                app: worker
         spec:
             imagePullSecrets:
                 - name: regcred
+            nodeSelector:
+                agentpool: userpool
+            tolerations:
+                - key: 'kubernetes.azure.com/scalesetpriority'
+                  operator: 'Equal'
+                  value: 'spot'
+                  effect: 'NoSchedule'
+                - key: 'sku'
+                  operator: 'Equal'
+                  value: 'gpu'
+                  effect: 'NoSchedule'
             containers:
                 - name: playwright
                   image: hannie2/my-docker-registry:playwright
@@ -40,10 +51,14 @@ spec:
                             secretKeyRef:
                                 name: mapbox-access-token
                                 key: mapbox.access.token
+                      - name: NVIDIA_VISIBLE_DEVICES
+                        value: all
+                      - name: NVIDIA_DRIVER_CAPABILITIES
+                        value: all
                   resources:
                       requests:
-                          cpu: 500m
-                          memory: 1000Mi
+                          cpu: 1200m
+                          memory: 5000Mi
                       limits:
-                          cpu: 500m
-                          memory: 1000Mi
+                          cpu: 1200m
+                          memory: 10000Mi

@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: master
+    labels:
+        app: master
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: master
+    template:
+        metadata:
+            labels:
+                app: master
+        spec:
+            imagePullSecrets:
+                - name: regcred
+            nodeSelector:
+                agentpool: apppool
+            tolerations:
+                - key: 'kubernetes.azure.com/scalesetpriority'
+                  operator: 'Equal'
+                  value: 'spot'
+                  effect: 'NoSchedule'
+            containers:
+                - name: master
+                  image: hannie2/my-docker-registry:master
+                  imagePullPolicy: Always
+                  ports:
+                      - containerPort: 3000
+                  env:
+                      - name: REDIS_URL
+                        valueFrom:
+                            secretKeyRef:
+                                name: redis-url
+                                key: redis.url
+                      - name: PORT
+                        value: '3000'
+                  resources:
+                      requests:
+                          cpu: 1000m
+                          memory: 1000Mi
+                      limits:
+                          cpu: 1000m
+                          memory: 1000Mi
+                  
