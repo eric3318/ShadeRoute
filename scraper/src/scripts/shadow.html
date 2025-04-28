@@ -6,7 +6,7 @@
         <title>Fetching...</title>
         <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet" />
         <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
-        <script src="https://unpkg.com/mapbox-gl-shadow-simulator/dist/mapbox-gl-shadow-simulator.umd.min.js"></script>
+        <script src="https://www.unpkg.com/mapbox-gl-shadow-simulator/dist/mapbox-gl-shadow-simulator.umd.min.js"></script>
         <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
         <style>
             body {
@@ -81,7 +81,7 @@
                 blocks.push(currBlock);
                 blockMetaDataArr.push(currBlockMetaData);
             }
-            console.log('total number of points', totalNumPoints);
+            // console.log('total number of points', totalNumPoints);
 
             let { minLon, maxLon, minLat, maxLat } = boundingBoxes[0].limits;
             let initialCenter = turf.center(turf.bboxPolygon([minLon, minLat, maxLon, maxLat]));
@@ -143,7 +143,7 @@
                 }).addTo(map);
 
                 const blockOutputs = [];
-                console.log('total number of blocks ', blocks.length);
+                // console.log('total number of blocks ', blocks.length);
 
                 for (let i = 0; i < blocks.length; i++) {
                     const cells = blocks[i];
@@ -159,6 +159,7 @@
                     });
 
                     map.setCenter(center.geometry.coordinates).setZoom(BUILDING_ZOOM);
+                    // new mapboxgl.Marker({ color: 'red' }).setLngLat(center.geometry.coordinates).addTo(map);
                     const mapboxLoaded = mapLoaded(map);
 
                     await Promise.all([mapboxLoaded, shadeMapLoaded]);
@@ -191,7 +192,6 @@
 
                 let aggregatedOutput = {};
 
-                let duplicateCount = 0;
                 for (let i = 0; i < blockOutputs.length; i++) {
                     const blockOutput = blockOutputs[i];
                     const blockMetaData = blockMetaDataArr[i];
@@ -199,7 +199,7 @@
                     const outputArrFlat = Array.from(blockOutput)
                         .map((arr) => [...arr])
                         .flat();
-                    console.log('Resulted numPoints', outputArrFlat.length);
+                    // console.log('Resulted numPoints', outputArrFlat.length);
 
                     let outputIdx = 0;
                     for (let j = 0; j < blockMetaData.length; j++) {
@@ -210,23 +210,20 @@
                             let start = outputIdx;
                             outputIdx += count;
                             let currEdge = outputArrFlat.slice(start, outputIdx);
-                            let edgeOutput = [];
-                            for (let l = 0; l < currEdge.length; l += 4) {
-                                if (currEdge[l] === 0) {
-                                    edgeOutput.push(1);
-                                } else {
-                                    edgeOutput.push(0);
+                            let pointsInShade = 0;
+                            for (let p = 0; p < currEdge.length; p += 4) {
+                                if (currEdge[p] === 0) {
+                                    pointsInShade += 1;
                                 }
                             }
-                            aggregatedOutput[edgeInfo.edgeId] = edgeOutput;
+                            let shadePercentage = pointsInShade / edgeInfo.numPoints;
+                            aggregatedOutput[edgeInfo.edgeId] = shadePercentage;
                         }
                     }
                 }
 
-                console.log('Resulted edge count ', Object.keys(aggregatedOutput).length);
-                console.log('Duplicate count ', duplicateCount);
-                // await new Promise((resolve) => setTimeout(resolve, 100000000000));
-                // map.remove();
+                // console.log('Resulted edge count ', Object.keys(aggregatedOutput).length);
+
                 window.outputData = aggregatedOutput;
             });
         });
