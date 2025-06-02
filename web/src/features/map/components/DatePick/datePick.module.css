@@ -1,0 +1,30 @@
+.day {
+  color: white;
+
+  @mixin hover {
+    background-color: #ee6352 !important;
+    color: white !important;
+  }
+
+  &[data-selected] {
+    background-color: #ee6352;
+    color: white;
+  }
+}
+
+.calendarHeaderControl {
+  color: white;
+
+  @mixin hover {
+    background-color: #ee6352 !important;
+    color: white !important;
+  }
+}
+
+.calendarHeaderLevel {
+  color: white;
+  @mixin hover {
+    background-color: #ee6352 !important;
+    color: white !important;
+  }
+}
