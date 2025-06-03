@@ -62,7 +62,7 @@ export default function LandingPage() {
               <SimpleGrid cols={3}>
                 <Card padding="lg">
                   <Stack>
-                    <IconMapPin size={48} stroke={1} color="#0466C8" />
+                    <IconMapPin size={48} stroke={1.5} color="#0466C8" />
 
                     <Text size="xl" fw={500}>
                       Multi-City
@@ -74,7 +74,7 @@ export default function LandingPage() {
 
                 <Card padding="lg">
                   <Stack>
-                    <IconMapPin size={48} stroke={1} color="#0466C8" />
+                    <IconMapPin size={48} stroke={1.5} color="#0466C8" />
 
                     <Text size="xl" fw={500}>
                       Flexible Modes
@@ -86,7 +86,7 @@ export default function LandingPage() {
 
                 <Card padding="lg">
                   <Stack>
-                    <IconMapPin size={48} stroke={1} color="#0466C8" />
+                    <IconMapPin size={48} stroke={1.5} color="#0466C8" />
 
                     <Text size="xl" fw={500}>
                       Anytime Year-round

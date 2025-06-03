@@ -1,5 +1,10 @@
-import { TimeInput, TimePicker } from '@mantine/dates';
+import { TimePicker } from '@mantine/dates';
 
-export default function TimePick() {
-  return <TimePicker withDropdown size="md" />;
+type Props = {
+  value: string;
+  onChange: (value: string) => void;
+};
+
+export default function TimePick({ value, onChange }: Props) {
+  return <TimePicker value={value} onChange={onChange} withDropdown size="md" />;
 }

@@ -1,6 +1,6 @@
 import { Stack } from '@mantine/core';
 import SideBarItem from '../SideBarItem/SideBarItem';
-import { IconBike, IconClock, IconMapPin, IconSun } from '@tabler/icons-react';
+import { IconBike, IconMapPin, IconSun } from '@tabler/icons-react';
 
 const items = [
   {
@@ -8,7 +8,6 @@ const items = [
     icon: IconMapPin,
   },
   { label: 'Mode', icon: IconBike },
-  { label: 'Time', icon: IconClock },
   { label: 'Shade', icon: IconSun },
 ];
 

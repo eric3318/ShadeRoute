@@ -5,70 +5,30 @@ import SecondaryBar from './components/SecondaryBar/SecondaryBar';
 import ContextMenu from './components/ContextMenu/ContextMenu';
 import { useState } from 'react';
 import { useDisclosure } from '@mantine/hooks';
-import ShadeSlider from './components/ShadeSlider/ShadeSlider';
-import DatePick from './components/DatePick/DatePick';
-import TimePick from './components/TimePick/TimePick';
-import { Button, Stack, Text } from '@mantine/core';
+
 import Control from './components/Control/Control';
-
-function CityContent({ items }: { items: any[] }) {
-  return (
-    <Stack h="100%">
-      {items.map((item) => (
-        <div key={item.id}>{item.name}</div>
-      ))}
-    </Stack>
-  );
-}
-
-function ModeContent() {
-  return <div>Mode</div>;
-}
-
-function TimeContent() {
-  return <div>Time</div>;
-}
-
-function ShadeContent() {
-  return (
-    <Stack h="100%" justify="space-between">
-      <Stack>
-        <Text c="white" size="lg" fw={500}>
-          Date
-        </Text>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <DatePick />
-        </div>
-      </Stack>
-
-      <Stack>
-        <Text c="white" size="lg" fw={500}>
-          Time
-        </Text>
-        <TimePick />
-      </Stack>
-
-      <Stack>
-        <Text c="white" size="lg" fw={500}>
-          How much shade?
-        </Text>
-        <ShadeSlider />
-      </Stack>
-
-      <Button size="md" radius="md" color="#0466C8">
-        Apply
-      </Button>
-    </Stack>
-  );
-}
+import SettingsContent from './components/SecondaryBarContent/SettingsContent/SettingsContent';
+import CityContent from './components/SecondaryBarContent/CityContent/CityContent';
+import ModeContent from './components/SecondaryBarContent/ModeContent/ModeContent';
+import dayjs from 'dayjs';
+import { fetchRoute } from './data';
+import { Mode } from './constants';
 
 export default function MapView() {
   const [activeItemIndex, setActiveItemIndex] = useState<number>(-1);
   const [secondaryBarOpened, { open, close }] = useDisclosure(false);
-  const [start, setStart] = useState<{ lat: number; lng: number } | null>(null);
-  const [end, setEnd] = useState<{ lat: number; lng: number } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
   const [menuOpened, setMenuOpened] = useState<boolean>(false);
+
+  const [start, setStart] = useState<{ lat: number; lng: number } | null>(null);
+  const [end, setEnd] = useState<{ lat: number; lng: number } | null>(null);
+  const [city, setCity] = useState<string>(''); // set a default city
+  const [mode, setMode] = useState<Mode>(Mode.RUNNING);
+  const [settings, setSettings] = useState<{ date: string; time: string; shade: number }>({
+    date: '',
+    time: '',
+    shade: 50,
+  });
 
   const onSideBarItemClick = (index: number) => {
     setActiveItemIndex(index);
@@ -81,7 +41,18 @@ export default function MapView() {
   };
 
   const onConfirmButtonClick = () => {
-    // fetch route
+    if (!start || !end) {
+      return;
+    }
+
+    let dateTime =
+      settings.date && settings.time
+        ? dayjs(`${settings.date} ${settings.time}`).toISOString()
+        : new Date().toISOString();
+
+    let shade = settings.shade;
+
+    fetchRoute({ start, end, mode, dateTime, shade });
   };
 
   const onClearButtonClick = () => {
@@ -122,6 +93,18 @@ export default function MapView() {
   const handleContextMenuClose = () => {
     setMenuOpened(false);
     setContextMenu(null);
+  };
+
+  const handleDateChange = (date: string) => {
+    setSettings((prev) => ({ ...prev, date }));
+  };
+
+  const handleTimeChange = (time: string) => {
+    setSettings((prev) => ({ ...prev, time }));
+  };
+
+  const handleShadeChange = (shade: number) => {
+    setSettings((prev) => ({ ...prev, shade }));
   };
 
   return (
@@ -172,10 +155,18 @@ export default function MapView() {
       )}
 
       <SecondaryBar opened={secondaryBarOpened} close={onSecondaryBarClose}>
-        {activeItemIndex === 0 && <CityContent items={[]} />}
+        {activeItemIndex === 0 && <CityContent />}
         {activeItemIndex === 1 && <ModeContent />}
-        {activeItemIndex === 2 && <TimeContent />}
-        {activeItemIndex === 3 && <ShadeContent />}
+        {activeItemIndex === 2 && (
+          <SettingsContent
+            date={settings.date}
+            time={settings.time}
+            shade={settings.shade}
+            onDateChange={handleDateChange}
+            onTimeChange={handleTimeChange}
+            onShadeChange={handleShadeChange}
+          />
+        )}
       </SecondaryBar>
     </div>
   );

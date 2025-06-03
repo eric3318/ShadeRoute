@@ -1,9 +1,11 @@
-import { useState } from 'react';
 import { DatePicker } from '@mantine/dates';
 import styles from './datePick.module.css';
 
-export default function DatePick() {
-  const [value, setValue] = useState<Date | null>(null);
+type Props = {
+  value: string | null;
+  onChange: (value: string) => void;
+};
 
-  return <DatePicker value={value} onChange={setValue} size="lg" classNames={styles} />;
+export default function DatePick({ value, onChange }: Props) {
+  return <DatePicker value={value} onChange={onChange} size="lg" classNames={styles} />;
 }
