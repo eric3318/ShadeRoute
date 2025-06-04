@@ -84,7 +84,7 @@ public class CustomWeighting implements Weighting {
   private final static double SPEED_CONV = 3.6;
   protected final double distanceInfluence;
   protected final double headingPenaltySeconds;
-  private final EdgeToDoubleMapping edgeToSpeedMapping;
+  protected final EdgeToDoubleMapping edgeToSpeedMapping;
   protected final EdgeToDoubleMapping edgeToPriorityMapping;
   private final TurnCostProvider turnCostProvider;
   private final MaxCalc maxPrioCalc;

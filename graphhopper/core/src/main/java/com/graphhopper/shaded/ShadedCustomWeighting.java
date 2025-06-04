@@ -90,6 +90,13 @@ public class ShadedCustomWeighting extends CustomWeighting {
 
   @Override
   public double calcEdgeWeight(EdgeIteratorState edgeState, boolean reverse) {
+    double priority = edgeToPriorityMapping.get(edgeState, reverse);
+    double speed = edgeToSpeedMapping.get(edgeState, reverse);
+
+    if (priority == 0 || speed == 0) {
+      return Double.POSITIVE_INFINITY;
+    }
+
     Integer edgeId = edgeState.getEdge();
     Integer coverageLookUpKey;
 
@@ -105,10 +112,10 @@ public class ShadedCustomWeighting extends CustomWeighting {
       return Double.POSITIVE_INFINITY;
     }
 
-    return getEdgeWeight(edgeState.getDistance(), shadeData.get(coverageLookUpKey));
+    return getEdgeWeight(edgeState.getDistance(), priority, shadeData.get(coverageLookUpKey));
   }
 
-  private double getEdgeWeight(double distanceWeight, double coverage) {
-    return distanceWeight * (1 - coverage * parameter);
+  private double getEdgeWeight(double distanceWeight, double priority, double coverage) {
+    return distanceWeight * (1 - coverage * parameter) / priority;
   }
 }
