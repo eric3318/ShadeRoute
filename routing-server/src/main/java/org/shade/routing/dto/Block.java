@@ -1,6 +1,5 @@
 package org.shade.routing.dto;
 
-import com.graphhopper.shaded.Edge;
 import java.util.List;
 
 

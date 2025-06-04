@@ -101,13 +101,21 @@ public class RoutingService {
 
     List<EdgeDetail> edgeDetails = new ArrayList<>();
 
+    double totalWeightedCoverage = 0;
+
     for (int i = 0; i < edgeIdDetails.size(); i++) {
       Integer edgeId = (Integer) edgeIdDetails.get(i).getValue();
       double distance = (double) distanceDetails.get(i).getValue();
-      double shadeCoverage = shadeData.get(edgeId);
+      double coverage = shadeData.get(edgeId);
+
       edgeDetails.add(
-          new EdgeDetail(edgeId, edgeMap.get(edgeId).points(), shadeCoverage, distance));
+          new EdgeDetail(distance, coverage, edgeMap.get(edgeId).points()));
+
+      totalWeightedCoverage += distance * coverage;
     }
+
+    double totalDistance =bestPath.getDistance();
+    double weightedAverageCoverage = totalDistance == 0 ? 0 : totalWeightedCoverage / totalDistance;
 
     List<Double[]> pathPoints = new ArrayList<>();
     pointList.forEach(p -> pathPoints.add(p.toGeoJson()));
@@ -115,26 +123,19 @@ public class RoutingService {
     List<InstructionDetail> instructions = new ArrayList<>();
     InstructionList instructionList = bestPath.getInstructions();
     Translation tr = hopper.getTranslationMap().getWithFallBack(Locale.CANADA);
+    int idx = 0;
     for (Instruction instruction : instructionList) {
-      PointList p = instruction.getPoints();
-      List<double[]> coords = new ArrayList<>();
-      for (int i = 0; i < p.size(); i++) {
-        double[] point = new double[2];
-        point[0] = p.getLon(i);
-        point[1] = p.getLat(i);
-        coords.add(point);
-      }
+      int tempIdx = idx + instruction.getLength();
+      int [] interval = new int[]{idx, tempIdx};
       InstructionDetail i = new InstructionDetail(instruction.getName(),
           instruction.getTurnDescription(tr),
-          instruction.getTime(), instruction.getDistance(), coords
-      );
+          instruction.getTime(), instruction.getDistance(), interval);
       instructions.add(i);
+      idx = tempIdx;
     }
 
-    RouteResponse response = new RouteResponse(pathPoints, edgeDetails, bestPath.getRouteWeight(),
-        bestPath.getDistance(), instructions);
-
-    return response;
+    return new RouteResponse(pathPoints, edgeDetails, bestPath.getRouteWeight(),
+        bestPath.getDistance(), weightedAverageCoverage, instructions);
   }
 
   private JobMetadata retrieveJobMetadata(String jobId) {
@@ -229,12 +230,11 @@ public class RoutingService {
       int edgeId = edgeState.getEdge();
 
       PointList geometry = edgeState.fetchWayGeometry(FetchMode.ALL);
-      List<Double> points = new ArrayList<>();
+      List<Double[]> points = new ArrayList<>();
 
       for (int idx = 0; idx < geometry.size(); idx++) {
         GHPoint ghPoint = geometry.get(idx);
-        points.add(ghPoint.getLon());
-        points.add(ghPoint.getLat());
+        points.add(ghPoint.toGeoJson());
       }
 
       Edge edge = new Edge(edgeId, edgeState.getDistance(), points);

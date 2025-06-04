@@ -3,6 +3,7 @@ package org.shade.routing.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.shade.routing.dto.RouteRequestDto;
+import org.shade.routing.dto.RouteResponse;
 import org.shade.routing.service.RoutingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,6 +33,7 @@ public class RoutingController {
 
   @GetMapping("/results")
   public ResponseEntity<?> getRoutingResult(@RequestParam String jobId) {
-    return ResponseEntity.ok(routingService.getResult(jobId));
+    RouteResponse result = routingService.getResult(jobId);
+    return result != null ? ResponseEntity.ok(result) : ResponseEntity.noContent().build();
   }
 }
