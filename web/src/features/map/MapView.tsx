@@ -24,6 +24,8 @@ import { Mode } from './constants';
 import type { City, Route } from './types';
 import { getRouteGeoJson } from './helpers';
 import { LoadingOverlay } from '@mantine/core';
+import InstructionList from './components/InstructionList/InstructionList';
+import RouteViewControl from './components/Control-RouteView/RouteViewControl';
 
 export default function MapView() {
   const [activeItemIndex, setActiveItemIndex] = useState<number>(-1);
@@ -31,6 +33,7 @@ export default function MapView() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
   const [menuOpened, setMenuOpened] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [instructionListOpened, setInstructionListOpened] = useState<boolean>(false);
 
   const [start, setStart] = useState<{ lat: number; lng: number } | null>(null);
   const [end, setEnd] = useState<{ lat: number; lng: number } | null>(null);
@@ -136,6 +139,7 @@ export default function MapView() {
   };
 
   const onClearButtonClick = () => {
+    setInstructionListOpened(false);
     setStart(null);
     setEnd(null);
     setRoute(null);
@@ -270,7 +274,7 @@ export default function MapView() {
         </div>
       </MapOverlay>
 
-      {!secondaryBarOpened && !isLoading && (
+      {!secondaryBarOpened && !isLoading && !instructionListOpened && (
         <MapOverlay position="bottom-right">
           <div
             style={{
@@ -282,7 +286,35 @@ export default function MapView() {
               padding: 'var(--mantine-spacing-md)',
             }}
           >
-            <Control start={start} end={end} onConfirm={onConfirmButtonClick} onClear={onClearButtonClick} />
+            {route ? (
+              <RouteViewControl
+                route={route}
+                onClearButtonClick={onClearButtonClick}
+                onInstructionListButtonClick={() => setInstructionListOpened(true)}
+              />
+            ) : (
+              <Control start={start} end={end} onConfirm={onConfirmButtonClick} onClear={onClearButtonClick} />
+            )}
+          </div>
+        </MapOverlay>
+      )}
+
+      {!secondaryBarOpened && !isLoading && (
+        <MapOverlay position="bottom-right">
+          <div
+            style={{
+              marginRight: 'var(--mantine-spacing-lg)',
+              marginBottom: '48px',
+              width: '300px',
+              backgroundColor: 'white',
+              borderRadius: 'var(--mantine-radius-md)',
+            }}
+          >
+            <InstructionList
+              opened={instructionListOpened}
+              onClose={() => setInstructionListOpened(false)}
+              instructions={[]}
+            />
           </div>
         </MapOverlay>
       )}

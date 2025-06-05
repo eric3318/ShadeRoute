@@ -10,7 +10,7 @@ type Props = {
 function ControlTextField({ label, value }: { label: string; value: string }) {
   return (
     <Group justify="space-between">
-      <Text fw={500} miw={50}>
+      <Text c="var(--mantine-color-gray-6)" fw={500} miw={50}>
         {label}
       </Text>
 
