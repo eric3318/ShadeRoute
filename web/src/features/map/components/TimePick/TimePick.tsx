@@ -6,5 +6,5 @@ type Props = {
 };
 
 export default function TimePick({ value, onChange }: Props) {
-  return <TimePicker value={value} onChange={onChange} withDropdown size="md" />;
+  return <TimePicker value={value} onChange={onChange} withDropdown size="md" styles={{ dropdown: { zIndex: 999 } }} />;
 }
