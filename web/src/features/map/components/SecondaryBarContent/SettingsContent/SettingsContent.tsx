@@ -1,4 +1,4 @@
-import { Button, Stack, Text } from '@mantine/core';
+import { Stack, Text } from '@mantine/core';
 import DatePick from '../../DatePick/DatePick';
 import TimePick from '../../TimePick/TimePick';
 import ShadeSlider from '../../ShadeSlider/ShadeSlider';

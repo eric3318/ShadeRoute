@@ -15,6 +15,7 @@ export default function SecondaryBar({ children, opened, close }: Props) {
         root: {
           position: 'absolute',
           left: '100px',
+          zIndex: 999,
         },
         content: {
           background: 'var(--mantine-color-dark-6)',
