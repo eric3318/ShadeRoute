@@ -19,10 +19,10 @@ import SettingsContent from './components/SecondaryBarContent/SettingsContent/Se
 import CityContent from './components/SecondaryBarContent/CityContent/CityContent';
 import ModeContent from './components/SecondaryBarContent/ModeContent/ModeContent';
 import dayjs from 'dayjs';
-import { fetchCities, fetchRoute, initRouting } from './data';
+import { fetchRoute, initRouting } from './data';
 import { Mode } from './constants';
 import type { City, Route } from './types';
-import { getRouteGeoJson } from './helpers';
+import { getDocuments, getRouteGeoJson } from './helpers';
 import { LoadingOverlay } from '@mantine/core';
 import InstructionList from './components/InstructionList/InstructionList';
 import RouteViewControl from './components/Control-RouteView/RouteViewControl';
@@ -46,22 +46,33 @@ export default function MapView() {
 
   const [route, setRoute] = useState<Route | null>(null);
   const [routeGeoJson, setRouteGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
-  const [cities, setCities] = useState<City[]>([]);
+  const [cityOptions, setCityOptions] = useState<City[]>([]);
   const [city, setCity] = useState<string>('San Francisco');
 
   const mapRef = useRef<MapRef>(null);
 
   useEffect(() => {
     async function getData() {
-      const cities = await fetchCities();
-      setCities(cities);
+      const cityDocs = await getDocuments<City>('cities');
+
+      if (!cityDocs) {
+        return;
+      }
+
+      const options = cityDocs.map((doc) => ({
+        name: doc.name,
+        coordinates: doc.coordinates,
+        country: doc.country,
+      }));
+
+      setCityOptions(options);
     }
+
     getData();
   }, []);
 
   useEffect(() => {
     if (start && end && route) {
-      console.log(settings);
       getNewRoute({
         start,
         end,
@@ -210,7 +221,7 @@ export default function MapView() {
       setStart(null);
       setEnd(null);
 
-      const selectedCity = cities.find((city) => city.name === cityName);
+      const selectedCity = cityOptions.find((city) => city.name === cityName);
       if (selectedCity && mapRef.current) {
         mapRef.current.easeTo({
           center: selectedCity.coordinates,
@@ -218,7 +229,7 @@ export default function MapView() {
         });
       }
     },
-    [cities],
+    [cityOptions],
   );
 
   return (
@@ -324,7 +335,7 @@ export default function MapView() {
       )}
 
       <SecondaryBar opened={secondaryBarOpened} close={onSecondaryBarClose}>
-        {activeItemIndex === 0 && <CityContent options={cities} city={city} onCityChange={handleCityChange} />}
+        {activeItemIndex === 0 && <CityContent options={cityOptions} city={city} onCityChange={handleCityChange} />}
         {activeItemIndex === 1 && <ModeContent mode={mode} onModeChange={handleModeChange} />}
         {activeItemIndex === 2 && (
           <SettingsContent

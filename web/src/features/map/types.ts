@@ -22,4 +22,5 @@ export type Instruction = {
 export type City = {
   name: string;
   coordinates: [number, number];
+  country: string;
 };

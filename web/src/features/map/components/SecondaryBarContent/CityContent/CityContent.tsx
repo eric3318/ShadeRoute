@@ -25,7 +25,7 @@ export default function CityContent({ options, city, onCityChange }: Props) {
           radius="md"
           c={city === option.name ? '#EE6352' : 'white'}
         >
-          {option.name}
+          {option.name}, {option.country}
         </Button>
       ))}
     </Stack>
