@@ -40,14 +40,14 @@ export type SavedRoute = {
   end: [number, number];
   path: { longitude: number; latitude: number }[];
   details: {
-    points: [number, number][];
+    points: { longitude: number; latitude: number }[];
     coverage: number;
     distance: number;
   }[];
   city: string;
   mode: Mode;
   settings: RouteSettings;
-  tripTime: string;
+  timeStamp: number;
   distance: number;
   weightedAverageCoverage: number;
   createdAt: string;

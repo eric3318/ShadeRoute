@@ -48,7 +48,7 @@ export default function MapView() {
     time: '',
     shade: 50,
   });
-  const [lastUsedTripTime, setLastUsedTripTime] = useState<string>('');
+  const [lastUsedTripTime, setLastUsedTripTime] = useState<number | null>(null);
 
   const [route, setRoute] = useState<Route | null>(null);
   const [routeGeoJson, setRouteGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
@@ -151,7 +151,7 @@ export default function MapView() {
         return;
       }
 
-      setLastUsedTripTime(dayjs(timeStamp).toISOString());
+      setLastUsedTripTime(timeStamp);
       setRoute(data);
       setRouteGeoJson(getRouteGeoJson(data));
     } finally {
@@ -243,7 +243,7 @@ export default function MapView() {
   };
 
   const onSaveRoute = async (routeName: string) => {
-    if (!start || !end || !route || !user) {
+    if (!start || !end || !route || !user || !lastUsedTripTime) {
       return;
     }
 
@@ -253,7 +253,7 @@ export default function MapView() {
 
     const details = route.details.map((edge) => {
       return {
-        points: edge.points,
+        points: edge.points.map((point) => ({ longitude: point[0], latitude: point[1] })),
         coverage: edge.coverage,
         distance: edge.distance,
       };
@@ -269,7 +269,7 @@ export default function MapView() {
       city,
       mode,
       settings,
-      tripTime: lastUsedTripTime,
+      timeStamp: lastUsedTripTime,
       distance: route.distance,
       weightedAverageCoverage: route.weightedAverageCoverage,
       createdAt: new Date().toISOString(),
