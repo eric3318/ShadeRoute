@@ -1,0 +1,56 @@
+.mainHeading {
+  font-size: 3rem;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: 4rem;
+  }
+}
+
+.heroContainer {
+  padding: 1rem;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 3rem 1rem;
+  }
+}
+
+.heroContent {
+  gap: 2rem;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 1rem;
+  }
+}
+
+.featuresContainer {
+  padding: 2rem 1rem;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    padding: 4rem 1rem;
+  }
+}
+
+.sectionHeading {
+  font-size: 2rem;
+  font-weight: 500;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    font-size: 3rem;
+  }
+}
+
+.features {
+  gap: var(--mantine-spacing-md);
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 5rem;
+  }
+}
+
+.footerContent {
+  gap: 2rem;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    gap: 1rem;
+  }
+}

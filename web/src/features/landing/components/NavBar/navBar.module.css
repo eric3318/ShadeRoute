@@ -1,0 +1,7 @@
+.buttons {
+  display: none;
+
+  @mixin larger-than $mantine-breakpoint-sm {
+    display: flex;
+  }
+}

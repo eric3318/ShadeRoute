@@ -5,6 +5,7 @@ import { IconMapPin } from '@tabler/icons-react';
 import NavBar from './components/NavBar/NavBar';
 import hero from '../../assets/hero.png';
 import logoText from '../../assets/logo-text.svg';
+import styles from './landingPage.module.css';
 
 export default function LandingPage() {
   return (
@@ -12,7 +13,7 @@ export default function LandingPage() {
       <header
         style={{
           position: 'sticky',
-          height: '80px',
+          padding: '1rem 0',
           top: 0,
           zIndex: 1000,
           backgroundColor: '#0466C8',
@@ -25,10 +26,10 @@ export default function LandingPage() {
 
       <main>
         <section style={{ backgroundColor: '#0466C8' }}>
-          <div className="container-lg" style={{ padding: '64px 0' }}>
-            <SimpleGrid cols={2}>
-              <Stack gap={'xl'}>
-                <Title order={1} size={64} c="white">
+          <div className={`container-lg ${styles.heroContainer}`}>
+            <SimpleGrid cols={{ sm: 2 }} className={styles.heroContent}>
+              <Stack gap="xl">
+                <Title order={1} c="white" className={styles.mainHeading}>
                   Power your daily runs — without the <span style={{ color: '#FAA916' }}>burn.</span>
                 </Title>
 
@@ -41,7 +42,7 @@ export default function LandingPage() {
 
               <Image
                 src={hero}
-                alt="react"
+                alt="hero image"
                 style={{
                   objectFit: 'contain',
                   border: '2.5px solid #0AB6FF',
@@ -53,69 +54,63 @@ export default function LandingPage() {
         </section>
 
         <section>
-          <div className="container-lg" style={{ padding: '64px 0' }}>
-            <Stack gap="xl">
-              <Title order={2} size={36}>
-                Customize routes for your needs.
-              </Title>
+          <div className={`container-lg ${styles.featuresContainer}`}>
+            <Stack className={styles.features}>
+              <Stack gap="xl">
+                <Title className={styles.sectionHeading}>Customize routes for your needs.</Title>
 
-              <SimpleGrid cols={3}>
-                <Card padding="lg">
-                  <Stack>
-                    <IconMapPin size={48} stroke={1.5} color="#0466C8" />
+                <SimpleGrid cols={{ sm: 3 }}>
+                  <Card padding="lg">
+                    <Stack>
+                      <IconMapPin size={48} stroke={1.5} color="#0466C8" />
 
-                    <Text size="xl" fw={500}>
-                      Multi-City
-                    </Text>
+                      <Text size="xl" fw={500}>
+                        Multi-City
+                      </Text>
 
-                    <Text c="dimmed">Lorem ipsum dolor sit amet consectetur adipisicing elit.</Text>
-                  </Stack>
-                </Card>
+                      <Text c="dimmed">Lorem ipsum dolor sit amet consectetur adipisicing elit.</Text>
+                    </Stack>
+                  </Card>
 
-                <Card padding="lg">
-                  <Stack>
-                    <IconMapPin size={48} stroke={1.5} color="#0466C8" />
+                  <Card padding="lg">
+                    <Stack>
+                      <IconMapPin size={48} stroke={1.5} color="#0466C8" />
 
-                    <Text size="xl" fw={500}>
-                      Flexible Modes
-                    </Text>
+                      <Text size="xl" fw={500}>
+                        Flexible Modes
+                      </Text>
 
-                    <Text c="dimmed">Lorem ipsum dolor sit amet consectetur adipisicing elit.</Text>
-                  </Stack>
-                </Card>
+                      <Text c="dimmed">Lorem ipsum dolor sit amet consectetur adipisicing elit.</Text>
+                    </Stack>
+                  </Card>
 
-                <Card padding="lg">
-                  <Stack>
-                    <IconMapPin size={48} stroke={1.5} color="#0466C8" />
+                  <Card padding="lg">
+                    <Stack>
+                      <IconMapPin size={48} stroke={1.5} color="#0466C8" />
 
-                    <Text size="xl" fw={500}>
-                      Anytime Year-round
-                    </Text>
+                      <Text size="xl" fw={500}>
+                        Anytime Year-round
+                      </Text>
 
-                    <Text c="dimmed">Lorem ipsum dolor sit amet consectetur adipisicing elit.</Text>
-                  </Stack>
-                </Card>
+                      <Text c="dimmed">Lorem ipsum dolor sit amet consectetur adipisicing elit.</Text>
+                    </Stack>
+                  </Card>
+                </SimpleGrid>
+              </Stack>
+
+              <SimpleGrid cols={{ sm: 2 }}>
+                <div></div>
+
+                <Stack gap="xl">
+                  <Title className={styles.sectionHeading}>Don't Let the Sun Slow You Down</Title>
+
+                  <Text c="dimmed">
+                    Too much sunlight should not be a reason to stop your fitness grind. Keep your routine going strong
+                    — just tell us how much shade you prefer, and we'll generate a route tailored to your comfort.
+                  </Text>
+                </Stack>
               </SimpleGrid>
             </Stack>
-          </div>
-        </section>
-
-        <section>
-          <div className="container-lg" style={{ padding: '64px 0' }}>
-            <SimpleGrid cols={2}>
-              <div></div>
-
-              <Stack gap="xl">
-                <Title order={2} size={48} maw={500}>
-                  Don't Let the Sun Slow You Down
-                </Title>
-
-                <Text>
-                  Too much sunlight should not be a reason to stop your fitness grind. Keep your routine going strong —
-                  just tell us how much shade you prefer, and we'll generate a route tailored to your comfort.
-                </Text>
-              </Stack>
-            </SimpleGrid>
           </div>
         </section>
       </main>
@@ -124,11 +119,12 @@ export default function LandingPage() {
         style={{
           backgroundColor: '#1C2321',
           height: '350px',
+          padding: '2rem 0',
         }}
       >
-        <div className="container-lg" style={{ padding: '64px 0' }}>
+        <div className="container-lg">
           <Stack justify="space-between" h="100%">
-            <SimpleGrid cols={4}>
+            <SimpleGrid cols={{ sm: 3 }} className={styles.footerContent}>
               <img src={logoText} alt="logo" width={200} />
 
               <Stack c="white">
