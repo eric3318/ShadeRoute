@@ -61,15 +61,19 @@ export default function MapView() {
 
   useEffect(() => {
     if (start && end && route) {
+      console.log(settings);
       getNewRoute({
         start,
         end,
-        timeStamp: dayjs(`${settings.date} ${settings.time}`).unix(),
+        timeStamp:
+          settings.date && settings.time
+            ? dayjs(`${settings.date} ${settings.time}`).unix()
+            : Math.floor(Date.now() / 1000),
         parameter: settings.shade,
         mode,
       });
     }
-  }, [settings, mode, start, end, route]);
+  }, [settings, mode, start, end]);
 
   const onSideBarItemClick = (index: number) => {
     setActiveItemIndex(index);
@@ -118,7 +122,7 @@ export default function MapView() {
         toLon: end.lng,
         mode,
         timeStamp,
-        parameter,
+        parameter: parameter * 0.01,
       });
 
       if (!initResult) {
@@ -313,7 +317,7 @@ export default function MapView() {
             <InstructionList
               opened={instructionListOpened}
               onClose={() => setInstructionListOpened(false)}
-              instructions={[]}
+              instructions={route?.instructions || []}
             />
           </div>
         </MapOverlay>

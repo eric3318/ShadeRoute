@@ -15,7 +15,7 @@ export default function RouteViewControl({ route, onClearButtonClick, onInstruct
           Distance
         </Text>
 
-        <Text>{route.distance} m</Text>
+        <Text>{route.distance.toFixed(0)} m</Text>
       </Group>
 
       <Group justify="space-between">
@@ -23,7 +23,7 @@ export default function RouteViewControl({ route, onClearButtonClick, onInstruct
           Average Coverage
         </Text>
 
-        <Text>{route.weightedAverageCoverage} %</Text>
+        <Text>{(route.weightedAverageCoverage * 100).toFixed(1)} %</Text>
       </Group>
 
       <Stack gap="sm">

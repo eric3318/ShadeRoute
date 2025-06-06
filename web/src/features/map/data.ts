@@ -30,7 +30,7 @@ type InitRoutingResponse = {
 
 export async function initRouting(payload: InitRoutingParams): Promise<InitRoutingResponse | null> {
   try {
-    const response = await fetch(`${import.meta.env.SERVER_BASE_URL}/route`, {
+    const response = await fetch(`${import.meta.env.VITE_SERVER_BASE_URL}/route`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ export async function fetchRoute(jobId: string): Promise<Route | null> {
   return new Promise((resolve) => {
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`${import.meta.env.SERVER_BASE_URL}/results?jobId=${jobId}`);
+        const response = await fetch(`${import.meta.env.VITE_SERVER_BASE_URL}/results?jobId=${jobId}`);
 
         if (!response.ok) {
           throw new Error('Unsuccessful response from server');
