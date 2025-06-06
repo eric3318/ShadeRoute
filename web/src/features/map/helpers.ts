@@ -1,6 +1,6 @@
 import type { Route } from './types';
 import { db } from '../../../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { addDoc, collection, getDocs, type DocumentData, type WithFieldValue } from 'firebase/firestore';
 
 export function getRouteGeoJson(route: Route): GeoJSON.FeatureCollection {
   return {
@@ -15,20 +15,26 @@ export function getRouteGeoJson(route: Route): GeoJSON.FeatureCollection {
   };
 }
 
-// export const addDocument = async (collectionName: string, subCollectionName: string = '', data: any) => {
-//   try {
-//     const path = `${collectionName}${subCollectionName && `/${subCollectionName}`}`;
-//     const collectionRef = collection(db, path);
-//     const docRef = await addDoc(collectionRef, data);
-//     if (!docRef) {
-//       return null;
-//     }
-//     return docRef.id;
-//   } catch (err) {
-//     console.log(err);
-//     return null;
-//   }
-// };
+export async function addDocument<T extends WithFieldValue<DocumentData>>(
+  collectionName: string,
+  subCollectionName: string = '',
+  data: T,
+): Promise<string | null> {
+  try {
+    const path = `${collectionName}${subCollectionName && `/${subCollectionName}`}`;
+    const collectionRef = collection(db, path);
+    const docRef = await addDoc(collectionRef, data);
+
+    if (!docRef) {
+      return null;
+    }
+
+    return docRef.id;
+  } catch (err) {
+    console.log(err);
+    return null;
+  }
+}
 
 // export const updateDocument = async (
 //   collectionName: string,

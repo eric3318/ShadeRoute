@@ -1,3 +1,5 @@
+import { Mode } from './constants';
+
 export type Route = {
   path: [number, number][];
   details: {
@@ -23,4 +25,30 @@ export type City = {
   name: string;
   coordinates: [number, number];
   country: string;
+};
+
+export type RouteSettings = {
+  date: string;
+  time: string;
+  shade: number;
+};
+
+export type SavedRoute = {
+  name: string;
+  userId: string;
+  start: [number, number];
+  end: [number, number];
+  path: { longitude: number; latitude: number }[];
+  details: {
+    points: [number, number][];
+    coverage: number;
+    distance: number;
+  }[];
+  city: string;
+  mode: Mode;
+  settings: RouteSettings;
+  tripTime: string;
+  distance: number;
+  weightedAverageCoverage: number;
+  createdAt: string;
 };

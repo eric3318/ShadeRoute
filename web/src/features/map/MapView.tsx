@@ -21,33 +21,38 @@ import ModeContent from './components/SecondaryBarContent/ModeContent/ModeConten
 import dayjs from 'dayjs';
 import { fetchRoute, initRouting } from './data';
 import { Mode } from './constants';
-import type { City, Route } from './types';
-import { getDocuments, getRouteGeoJson } from './helpers';
+import type { City, Route, SavedRoute } from './types';
+import { addDocument, getDocuments, getRouteGeoJson } from './helpers';
 import { LoadingOverlay } from '@mantine/core';
 import InstructionList from './components/InstructionList/InstructionList';
 import RouteViewControl from './components/Control-RouteView/RouteViewControl';
+import SaveRouteModal from './components/SaveRouteModal/SaveRouteModal';
+import { useAuth } from '../auth/hooks/useAuth/useAuth';
 
 export default function MapView() {
+  const { user } = useAuth();
   const [activeItemIndex, setActiveItemIndex] = useState<number>(-1);
   const [secondaryBarOpened, { open, close }] = useDisclosure(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lat: number; lng: number } | null>(null);
   const [menuOpened, setMenuOpened] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [instructionListOpened, setInstructionListOpened] = useState<boolean>(false);
+  const [saveRouteModalOpened, { close: closeSaveRouteModal, open: openSaveRouteModal }] = useDisclosure(false);
 
   const [start, setStart] = useState<{ lat: number; lng: number } | null>(null);
   const [end, setEnd] = useState<{ lat: number; lng: number } | null>(null);
+  const [city, setCity] = useState<string>('Vancouver');
   const [mode, setMode] = useState<Mode>(Mode.RUNNING);
   const [settings, setSettings] = useState<{ date: string; time: string; shade: number }>({
     date: '',
     time: '',
     shade: 50,
   });
+  const [lastUsedTripTime, setLastUsedTripTime] = useState<string>('');
 
   const [route, setRoute] = useState<Route | null>(null);
   const [routeGeoJson, setRouteGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
   const [cityOptions, setCityOptions] = useState<City[]>([]);
-  const [city, setCity] = useState<string>('San Francisco');
 
   const mapRef = useRef<MapRef>(null);
 
@@ -146,6 +151,7 @@ export default function MapView() {
         return;
       }
 
+      setLastUsedTripTime(dayjs(timeStamp).toISOString());
       setRoute(data);
       setRouteGeoJson(getRouteGeoJson(data));
     } finally {
@@ -232,6 +238,46 @@ export default function MapView() {
     [cityOptions],
   );
 
+  const onSaveButtonClick = () => {
+    openSaveRouteModal();
+  };
+
+  const onSaveRoute = async (routeName: string) => {
+    if (!start || !end || !route || !user) {
+      return;
+    }
+
+    const path = route.path.map((point) => {
+      return { longitude: point[0], latitude: point[1] };
+    });
+
+    const details = route.details.map((edge) => {
+      return {
+        points: edge.points,
+        coverage: edge.coverage,
+        distance: edge.distance,
+      };
+    });
+
+    const routeData = {
+      name: routeName,
+      userId: user.uid,
+      start: [start.lng, start.lat] as [number, number],
+      end: [end.lng, end.lat] as [number, number],
+      path,
+      details,
+      city,
+      mode,
+      settings,
+      tripTime: lastUsedTripTime,
+      distance: route.distance,
+      weightedAverageCoverage: route.weightedAverageCoverage,
+      createdAt: new Date().toISOString(),
+    };
+
+    await addDocument<SavedRoute>('routes', undefined, routeData);
+  };
+
   return (
     <div style={{ height: '100vh' }}>
       <Map
@@ -304,6 +350,7 @@ export default function MapView() {
             {route ? (
               <RouteViewControl
                 route={route}
+                onSaveButtonClick={onSaveButtonClick}
                 onClearButtonClick={onClearButtonClick}
                 onInstructionListButtonClick={() => setInstructionListOpened(true)}
               />
@@ -348,6 +395,8 @@ export default function MapView() {
           />
         )}
       </SecondaryBar>
+
+      <SaveRouteModal opened={saveRouteModalOpened} onClose={closeSaveRouteModal} onSave={onSaveRoute} />
 
       <LoadingOverlay visible={isLoading} overlayProps={{ blur: 2 }} />
     </div>
