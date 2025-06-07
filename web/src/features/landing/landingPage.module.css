@@ -26,7 +26,7 @@
   padding: 2rem 1rem;
 
   @mixin larger-than $mantine-breakpoint-sm {
-    padding: 4rem 1rem;
+    padding: 5rem 1rem;
   }
 }
 
@@ -35,7 +35,7 @@
   font-weight: 500;
 
   @mixin larger-than $mantine-breakpoint-sm {
-    font-size: 3rem;
+    font-size: 2.5rem;
   }
 }
 
@@ -52,5 +52,26 @@
 
   @mixin larger-than $mantine-breakpoint-sm {
     gap: 1rem;
+  }
+}
+
+.reverseOnMobile {
+  @mixin smaller-than $mantine-breakpoint-sm {
+    flex-direction: row-reverse;
+    gap: 2rem;
+  }
+}
+
+.cards {
+  @mixin smaller-than $mantine-breakpoint-sm {
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
+.cardContent {
+  @mixin smaller-than $mantine-breakpoint-sm {
+    flex-direction: row;
+    width: 100%;
   }
 }

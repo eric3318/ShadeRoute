@@ -6,6 +6,8 @@ import NavBar from './components/NavBar/NavBar';
 import hero from '../../assets/hero.png';
 import logoText from '../../assets/logo-text.svg';
 import styles from './landingPage.module.css';
+import change from '../../assets/change.png';
+// import sync from '../../assets/sync.png';
 
 export default function LandingPage() {
   return (
@@ -97,23 +99,76 @@ export default function LandingPage() {
                   </Card>
                 </SimpleGrid>
               </Stack>
-
-              <SimpleGrid cols={{ sm: 2 }}>
-                <div></div>
-
-                <Stack gap="xl">
-                  <Title className={styles.sectionHeading}>Don't Let the Sun Slow You Down</Title>
-
-                  <Text c="dimmed">
-                    Too much sunlight should not be a reason to stop your fitness grind. Keep your routine going strong
-                    — just tell us how much shade you prefer, and we'll generate a route tailored to your comfort.
-                  </Text>
-                </Stack>
-              </SimpleGrid>
             </Stack>
           </div>
         </section>
+
+        <section style={{ backgroundColor: '#242E2A' }}>
+          <div className={`container-lg ${styles.featuresContainer}`}>
+            <SimpleGrid cols={{ sm: 2 }} className={styles.reverseOnMobile}>
+              <img src={change} alt="change" width="100%" />
+
+              <Stack gap="xl">
+                <Title className={styles.sectionHeading} c="white">
+                  Don't Let the Sun Slow You Down
+                </Title>
+
+                <Text c="var(--mantine-color-gray-1)">
+                  Too much sunlight should not be a reason to stop your fitness grind. Keep your routine going strong —
+                  just tell us how much shade you prefer, and we'll generate a route tailored to your comfort.
+                </Text>
+              </Stack>
+            </SimpleGrid>
+          </div>
+        </section>
       </main>
+
+      {/* <section>
+        <div className={`container-lg ${styles.featuresContainer}`}>
+          <SimpleGrid cols={{ sm: 3 }} className={styles.cards}>
+            <Card withBorder radius="lg" py="lg" styles={{ root: { borderColor: '#0466C8' } }}>
+              <Stack gap="xl" className={styles.cardContent}>
+                <img src={sync} alt="sync" width="200px" style={{ alignSelf: 'center' }} />
+
+                <Stack>
+                  <Text size="xl" fw={500}>
+                    Seamless Planning
+                  </Text>
+                  <Text>Routes are synced between your devices. Plan routes on the web, access them on the go.</Text>
+                </Stack>
+              </Stack>
+            </Card>
+
+            <Card withBorder radius="lg" py="lg" styles={{ root: { borderColor: '#0466C8' } }}>
+              <Stack gap="xl">
+                <img src={sync} alt="sync" width="200px" style={{ alignSelf: 'center' }} />
+
+                <Stack>
+                  <Text size="xl" fw={500}>
+                    Navigate Turn-by-Turn
+                  </Text>
+
+                  <Text>Stay on track with real-time, step-by-step directions.</Text>
+                </Stack>
+              </Stack>
+            </Card>
+
+            <Card withBorder radius="lg" py="lg" styles={{ root: { borderColor: '#0466C8' } }}>
+              <Stack gap="xl">
+                <img src={sync} alt="sync" width="200px" style={{ alignSelf: 'center' }} />
+
+                <Stack>
+                  <Text size="xl" fw={500}>
+                    Navigate Turn-by-Turn
+                  </Text>
+
+                  <Text>Stay on track with real-time, step-by-step directions.</Text>
+                </Stack>
+              </Stack>
+            </Card>
+          </SimpleGrid>
+        </div>
+      </section> */}
 
       <footer
         style={{

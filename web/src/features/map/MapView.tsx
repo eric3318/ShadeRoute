@@ -2,6 +2,7 @@ import Map, {
   FullscreenControl,
   GeolocateControl,
   Layer,
+  Marker,
   NavigationControl,
   Source,
   type MapLayerMouseEvent,
@@ -28,6 +29,7 @@ import InstructionList from './components/InstructionList/InstructionList';
 import RouteViewControl from './components/Control-RouteView/RouteViewControl';
 import SaveRouteModal from './components/SaveRouteModal/SaveRouteModal';
 import { useAuth } from '../auth/hooks/useAuth/useAuth';
+import { IconMapPinFilled } from '@tabler/icons-react';
 
 export default function MapView() {
   const { user } = useAuth();
@@ -317,6 +319,19 @@ export default function MapView() {
             />
           </Source>
         )}
+
+        {start && (
+          <Marker longitude={start.lng} latitude={start.lat}>
+            <IconMapPinFilled size={32} color="#EE6352" />
+          </Marker>
+        )}
+
+        {end && (
+          <Marker longitude={end.lng} latitude={end.lat}>
+            <IconMapPinFilled size={32} color="#EE6352" />
+          </Marker>
+        )}
+
         <NavigationControl />
         <GeolocateControl />
         <FullscreenControl />
