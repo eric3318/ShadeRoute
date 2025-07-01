@@ -1,0 +1,4 @@
+scraping-service-url: ${SCRAPING_SERVICE_URL:http://master-service:3000/api/jobs}
+graphhopper:
+  osm-path: ${GRAPHHOPPER_OSM_PATH:/app/static/map.osm.pbf}
+  graph-location: ${GRAPHHOPPER_GRAPH_LOCATION:/app/graph-cache}

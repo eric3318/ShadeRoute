@@ -1,0 +1,49 @@
+services:
+  data-master:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    depends_on:
+      - redis
+    networks:
+      - shade-route-network
+
+  data-worker:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=development
+      - PORT=8082
+      - SHADEMAP_API_KEY=${SHADEMAP_API_KEY}
+      - MAPBOX_ACCESS_TOKEN=${MAPBOX_ACCESS_TOKEN}
+    depends_on:
+      - redis
+
+  router:
+    image: router:latest
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - redis
+      - data-master
+      - data-worker
+
+  redis:
+    image: redis:latest
+    volumes:
+      - redis:/data
+    networks:
+      - shade-route-network
+
+volumes:
+  redis:
+
+networks:
+  shade-route-network:
+
+
+
