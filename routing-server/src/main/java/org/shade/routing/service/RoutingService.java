@@ -65,77 +65,79 @@ public class RoutingService {
   private final ObjectMapper objectMapper;
   private final Map<String, RouteResponse> pendingResults = new HashMap<>();
 
-  @Value("${scraping-service-url}")
-  private String scrapingServiceUrl;
+  @Value("${data-service-url}")
+  private String dataServiceUrl;
 
   public RouteResponse getRoute(String jobId) {
-    JobMetadata metadata = retrieveJobMetadata(jobId);
-    Map<Integer, Double> shadeData = retrieveJobShadeData(jobId);
-    Map<Integer, Edge> edgeMap = retrieveJobEdgeMap(jobId);
+      JobMetadata metadata = retrieveJobMetadata(jobId);
+      Map<Integer, Double> shadeData = retrieveJobShadeData(jobId);
+      Map<Integer, Edge> edgeMap = retrieveJobEdgeMap(jobId);
 
-    RequestContext.setMetadata(metadata);
+      RequestContext.setMetadata(metadata);
 
-    GHRequest ghRequest = buildGHRequest(
-        metadata.getFromLat(),
-        metadata.getFromLon(),
-        metadata.getToLat(),
-        metadata.getToLon(),
-        Profiles.getProfileName(metadata.getMode()),
-        Algorithms.ASTAR
-    );
+      GHRequest ghRequest = buildGHRequest(
+          metadata.getFromLat(),
+          metadata.getFromLon(),
+          metadata.getToLat(),
+          metadata.getToLon(),
+          Profiles.getProfileName(metadata.getMode()),
+          Algorithms.ASTAR
+      );
 
-    ghRequest.setPathDetails(
-        Arrays.asList(Details.EDGE_ID, Details.DISTANCE));
+      ghRequest.setPathDetails(
+          Arrays.asList(Details.EDGE_ID, Details.DISTANCE));
 
-    GHResponse ghResponse = hopper.route(ghRequest);
+      GHResponse ghResponse = hopper.route(ghRequest);
 
-    if (ghResponse.hasErrors()) {
-      throw new RuntimeException(ghResponse.getErrors().toString());
-    }
+      if (ghResponse.hasErrors()) {
+        throw new RuntimeException(ghResponse.getErrors().toString());
+      }
 
-    ResponsePath bestPath = ghResponse.getBest();
+      ResponsePath bestPath = ghResponse.getBest();
 
-    List<PathDetail> edgeIdDetails = bestPath.getPathDetails().get(Details.EDGE_ID);
-    List<PathDetail> distanceDetails = bestPath.getPathDetails().get(Details.DISTANCE);
-    PointList pointList = bestPath.getPoints();
+      List<PathDetail> edgeIdDetails = bestPath.getPathDetails().get(Details.EDGE_ID);
+      List<PathDetail> distanceDetails = bestPath.getPathDetails().get(Details.DISTANCE);
+      PointList pointList = bestPath.getPoints();
 
-    List<EdgeDetail> edgeDetails = new ArrayList<>();
+      List<EdgeDetail> edgeDetails = new ArrayList<>();
 
-    double totalWeightedCoverage = 0;
+      double totalWeightedCoverage = 0;
 
-    for (int i = 0; i < edgeIdDetails.size(); i++) {
-      Integer edgeId = (Integer) edgeIdDetails.get(i).getValue();
-      double distance = (double) distanceDetails.get(i).getValue();
-      double coverage = shadeData.get(edgeId);
+      for (int i = 0; i < edgeIdDetails.size(); i++) {
+        Integer edgeId = (Integer) edgeIdDetails.get(i).getValue();
+        double distance = (double) distanceDetails.get(i).getValue();
+        double coverage = shadeData.get(edgeId);
 
-      edgeDetails.add(
-          new EdgeDetail(distance, coverage, edgeMap.get(edgeId).points()));
+        edgeDetails.add(
+            new EdgeDetail(distance, coverage, edgeMap.get(edgeId).points()));
 
-      totalWeightedCoverage += distance * coverage;
-    }
+        totalWeightedCoverage += distance * coverage;
+      }
 
-    double totalDistance =bestPath.getDistance();
-    double weightedAverageCoverage = totalDistance == 0 ? 0 : totalWeightedCoverage / totalDistance;
+      double totalDistance = bestPath.getDistance();
+      double weightedAverageCoverage =
+          totalDistance == 0 ? 0 : totalWeightedCoverage / totalDistance;
 
-    List<Double[]> pathPoints = new ArrayList<>();
-    pointList.forEach(p -> pathPoints.add(p.toGeoJson()));
+      List<Double[]> pathPoints = new ArrayList<>();
+      pointList.forEach(p -> pathPoints.add(p.toGeoJson()));
 
-    List<InstructionDetail> instructions = new ArrayList<>();
-    InstructionList instructionList = bestPath.getInstructions();
-    Translation tr = hopper.getTranslationMap().getWithFallBack(Locale.CANADA);
-    int idx = 0;
-    for (Instruction instruction : instructionList) {
-      int tempIdx = idx + instruction.getLength();
-      int [] interval = new int[]{idx, tempIdx};
-      InstructionDetail i = new InstructionDetail(instruction.getName(),
-          instruction.getTurnDescription(tr),
-          instruction.getTime(), instruction.getDistance(), interval);
-      instructions.add(i);
-      idx = tempIdx;
-    }
+      List<InstructionDetail> instructions = new ArrayList<>();
+      InstructionList instructionList = bestPath.getInstructions();
+      Translation tr = hopper.getTranslationMap().getWithFallBack(Locale.CANADA);
+      int idx = 0;
+      for (Instruction instruction : instructionList) {
+        int tempIdx = idx + instruction.getLength();
+        int[] interval = new int[]{idx, tempIdx};
+        InstructionDetail i = new InstructionDetail(instruction.getName(),
+            instruction.getTurnDescription(tr),
+            instruction.getTime(), instruction.getDistance(), interval);
+        instructions.add(i);
+        idx = tempIdx;
+      }
 
-    return new RouteResponse(pathPoints, edgeDetails, bestPath.getRouteWeight(),
-        bestPath.getDistance(), weightedAverageCoverage, instructions);
+      return new RouteResponse(pathPoints, edgeDetails, bestPath.getRouteWeight(),
+          bestPath.getDistance(), weightedAverageCoverage, instructions);
+
   }
 
   private JobMetadata retrieveJobMetadata(String jobId) {
@@ -274,7 +276,7 @@ public class RoutingService {
     HttpEntity<ScrapeRequestDto> requestEntity = new HttpEntity<>(scrapeRequestDto, headers);
 
     ResponseEntity<String> response = restTemplate.postForEntity(
-        scrapingServiceUrl,
+        dataServiceUrl,
         requestEntity,
         String.class
     );

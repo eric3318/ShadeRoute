@@ -23,16 +23,16 @@ Environment variables:
 - ```SHADEMAP_API_KEY``` ([Get your API key](https://shademap.app/about/#))
 
 1. Edit .env in root directory to provide the environment variables above
-2. Build the docker image for router in ```/routing-server```      
-   ```./mvnw compile jib:dockerBuild```
-3. Run docker compose in root directory    
+2. Download [map.osm.pbf](https://some-firebase-link) and put inside ```/routing-server/src/main/java/resources/static```
+3. Build the docker image for router in ```/routing-server```      
+   ```./mvnw clean compile jib:dockerBuild```
+4. Run docker compose in root directory    
 ```docker compose up```
 
 ### Add more cities
-Download the [map.osm.pbf](https://some-firebase-link) file containing OpenStreetMap data for select cities.  
-To create your own dataset, use [Osmium Tool](https://osmcode.org/osmium-tool/) to extract and merge OSM data.  
-OSM extracts are available at [GEOFABIRK](https://download.geofabrik.de/).  
-City polygon GeoJSON data is available at [MapTiler](https://www.maptiler.com/showcase/geocoding/).
+The [pbf file](https://some-firebase-link) contains OpenStreetMap data for select cities.   
+To create your own dataset, use [Osmium Tool](https://osmcode.org/osmium-tool/) to extract and merge OSM data.   
+OSM extracts are available at [GEOFABIRK](https://download.geofabrik.de/). City polygon GeoJSON data is available at [MapTiler](https://www.maptiler.com/showcase/geocoding/).
 
 ## Architecture
 

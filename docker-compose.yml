@@ -12,6 +12,7 @@ services:
       - app-network
 
   data-worker-service:
+    platform: linux/amd64
     build:
       context: data-worker
       dockerfile: Dockerfile
