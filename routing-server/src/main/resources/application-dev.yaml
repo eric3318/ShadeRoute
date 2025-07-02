@@ -1,4 +1,4 @@
-scraping-service-url: http://localhost:3000/api/jobs
+data-service-url: http://data-master-service:3000/api/jobs
 graphhopper:
-  osm-path: src/main/resources/static/map.osm.pbf
-  graph-location: target/graph-cache
+  osm-path: /app/static/map.osm.pbf
+  graph-location: /app/graph-cache

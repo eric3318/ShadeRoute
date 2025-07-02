@@ -14,7 +14,7 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 public class RedisConfig {
 
   private final static String REDIS_HOSTNAME = System.getenv()
-      .getOrDefault("REDIS_HOSTNAME", "localhost");
+      .getOrDefault("REDIS_HOSTNAME", "redis");
 
   @Bean
   public LettuceConnectionFactory lettuceConnectionFactory() {

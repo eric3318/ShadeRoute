@@ -110,7 +110,7 @@
             </platforms>
           </from>
           <to>
-            <image>docker.io/hannie2/my-docker-registry:router</image>
+            <image>router:latest</image>
           </to>
         </configuration>
       </plugin>

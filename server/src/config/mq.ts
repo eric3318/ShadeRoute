@@ -1,7 +1,7 @@
 import {Queue, Worker, Job } from 'bullmq';
 import redis from './db';
 
-const CALLBACK_URL = process.env.NODE_ENV === 'development' ? "http://localhost:8080/api/cb" :'http://routing-service/api/cb';
+const CALLBACK_URL = process.env.NODE_ENV === 'development' ? "http://routing-service:8080/api/cb" :process.env.CALLBACK_URL;
 
 const requestQueue = new Queue('request-queue', {connection:redis});
 

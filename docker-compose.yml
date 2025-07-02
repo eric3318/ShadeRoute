@@ -1,5 +1,5 @@
 services:
-  data-master:
+  data-master-service:
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -9,9 +9,9 @@ services:
     depends_on:
       - redis
     networks:
-      - shade-route-network
+      - app-network
 
-  data-worker:
+  data-worker-service:
     build:
       context: ./scraper
       dockerfile: Dockerfile
@@ -22,28 +22,34 @@ services:
       - MAPBOX_ACCESS_TOKEN=${MAPBOX_ACCESS_TOKEN}
     depends_on:
       - redis
+    networks:
+      - app-network
 
-  router:
+  routing-service:
     image: router:latest
     environment:
       - SPRING_PROFILES_ACTIVE=dev
+    ports:
+      - "8080:8080"
     depends_on:
       - redis
-      - data-master
-      - data-worker
+      - data-master-service
+      - data-worker-service
+    networks:
+      - app-network
 
   redis:
     image: redis:latest
     volumes:
       - redis:/data
     networks:
-      - shade-route-network
+      - app-network
 
 volumes:
   redis:
 
 networks:
-  shade-route-network:
+  app-network:
 
 
 

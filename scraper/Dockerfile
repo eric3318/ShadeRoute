@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.2.0-base-ubuntu20.04
+FROM --platform=linux/amd64 nvidia/cuda:12.2.0-base-ubuntu20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC

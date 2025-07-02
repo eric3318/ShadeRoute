@@ -6,7 +6,7 @@ public class RedissClient {
 
   private static volatile RedisClient redisClient;
   private static final String REDIS_URL = System.getenv()
-      .getOrDefault("REDIS_URL", "redis://localhost:6379");
+      .getOrDefault("REDIS_URL", "redis://redis:6379");
 
   private RedissClient() {
   }
