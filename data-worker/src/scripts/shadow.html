@@ -47,10 +47,10 @@
                         const edgeInfo = { edgeId: edge.edgeId, numSubEdges: 0, numPoints: 0 };
                         const points = edge.points;
                         const currEdge = [];
-                        let prev = points.slice(0, 2);
-                        let idx = 2;
+                        let idx = 1;
                         while (idx < points.length) {
-                            let curr = points.slice(idx, idx + 2);
+                            let curr = points[idx];
+                            let prev = points[idx - 1];
                             let route = turf.lineString([prev, curr]);
                             let length = turf.length(route);
                             let numPoints = Math.ceil(length / 5);
@@ -69,8 +69,7 @@
                             edgeInfo.numSubEdges += 1;
                             edgeInfo.numPoints += numPoints;
                             totalNumPoints += numPoints;
-                            prev = curr;
-                            idx += 2;
+                            idx += 1;
                         }
                         currCell.push(currEdge);
                         cellMetaData.push(edgeInfo);
@@ -78,6 +77,7 @@
                     currBlock.push(currCell);
                     currBlockMetaData.push(cellMetaData);
                 });
+
                 blocks.push(currBlock);
                 blockMetaDataArr.push(currBlockMetaData);
             }
@@ -165,28 +165,31 @@
                     await Promise.all([mapboxLoaded, shadeMapLoaded]);
 
                     const blockOutput = await Promise.all(
-                        cells.map(
-                            (cell) =>
-                                new Promise((resolve) => {
-                                    locations = cell.flatMap((edge) =>
-                                        edge.flatMap((subEdge) =>
-                                            subEdge.map((point) => ({
-                                                lng: point[0],
-                                                lat: point[1],
-                                            })),
-                                        ),
-                                    );
+                        cells.map(async (cell) => {
+                            if (cell.length === 0) {
+                                return [];
+                            }
 
-                                    const result = shadeMap._generateShadeProfile({
-                                        locations: locations,
-                                        dates: [time],
-                                        sunColor: [255, 255, 255, 255],
-                                        shadeColor: [0, 0, 0, 255],
-                                    });
-                                    resolve(result);
-                                }),
-                        ),
+                            const locations = cell.flatMap((edge) =>
+                                edge.flatMap((subEdge) =>
+                                    subEdge.map((point) => ({
+                                        lng: point[0],
+                                        lat: point[1],
+                                    })),
+                                ),
+                            );
+
+                            const result = await shadeMap._generateShadeProfile({
+                                locations,
+                                dates: [time],
+                                sunColor: [255, 255, 255, 255],
+                                shadeColor: [0, 0, 0, 255],
+                            });
+
+                            return result;
+                        }),
                     );
+
                     blockOutputs.push(blockOutput);
                 }
 

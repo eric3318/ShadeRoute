@@ -46,7 +46,7 @@ export const processInBackground = async (input: Input) => {
         });
 
         await page.waitForFunction(() => window.outputData !== undefined, {
-            timeout: 30000,
+            timeout: 10000,
         });
 
         const result = await page.evaluate(() => window.outputData);

@@ -33,7 +33,7 @@ app.post('/api/jobs', async(req: Request<{},{}, Input>, res: Response) => {
         const totalPartitions = Number(jobMetadata.total);
         await Promise.all(
             Array.from({length: totalPartitions}).map(async (_, index) => {
-                await requestQueue.add('request', {jobId,index, total: totalPartitions, timestamp: jobMetadata.timestamp} , { jobId: `${jobId}:${index}` });
+                await requestQueue.add('request', {jobId,index, total: totalPartitions, timestamp: jobMetadata.timestamp} , { jobId: `${jobId}:${index}`});
             })
         );
 

@@ -14,7 +14,7 @@ let worker: Worker;
 
 async function initDevBrowser() {
     browser = await puppeteer.launch({
-        headless: false,
+        headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -82,7 +82,7 @@ async function initWorker() {
             });
             return result;
         },
-        { connection: redis, concurrency: 5 },
+        { connection: redis, concurrency: 10 },
     );
 
     worker.on('completed', async (job, result) => {
