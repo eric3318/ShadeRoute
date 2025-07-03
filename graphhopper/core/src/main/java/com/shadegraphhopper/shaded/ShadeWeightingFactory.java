@@ -1,24 +1,11 @@
-/*
- *  Licensed to GraphHopper GmbH under one or more contributor
- *  license agreements. See the NOTICE file distributed with this work for
- *  additional information regarding copyright ownership.
- *
- *  GraphHopper GmbH licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except in
- *  compliance with the License. You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+package com.shadegraphhopper.shaded;
 
-package com.graphhopper.routing;
+import static com.graphhopper.routing.weighting.TurnCostProvider.NO_TURN_COST_PROVIDER;
+import static com.graphhopper.routing.weighting.custom.CustomModelParser.createWeightingParameters;
+import static com.graphhopper.util.Helper.toLowerCase;
 
 import com.graphhopper.config.Profile;
+import com.graphhopper.routing.DefaultWeightingFactory;
 import com.graphhopper.routing.ev.BooleanEncodedValue;
 import com.graphhopper.routing.ev.DecimalEncodedValue;
 import com.graphhopper.routing.ev.Orientation;
@@ -27,32 +14,39 @@ import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.weighting.DefaultTurnCostProvider;
 import com.graphhopper.routing.weighting.TurnCostProvider;
 import com.graphhopper.routing.weighting.Weighting;
-import com.graphhopper.routing.weighting.custom.CustomModelParser;
 import com.graphhopper.routing.weighting.custom.CustomWeighting;
 import com.graphhopper.storage.BaseGraph;
 import com.graphhopper.util.CustomModel;
 import com.graphhopper.util.PMap;
 import com.graphhopper.util.Parameters;
 import com.graphhopper.util.TurnCostsConfig;
+import java.util.Map;
 
-import static com.graphhopper.routing.weighting.TurnCostProvider.NO_TURN_COST_PROVIDER;
-import static com.graphhopper.util.Helper.toLowerCase;
+/**
+ * A subclass of {@link DefaultWeightingFactory} that creates ShadedCustomWeighting instead of CustomWeighting.
+ */
+public class ShadeWeightingFactory extends DefaultWeightingFactory {
 
-public class DefaultWeightingFactory implements WeightingFactory {
+  private final Map<Integer, Double> shadeData;
 
-  protected final BaseGraph graph;
-  protected final EncodingManager encodingManager;
-
-  public DefaultWeightingFactory(BaseGraph graph, EncodingManager encodingManager) {
-    this.graph = graph;
-    this.encodingManager = encodingManager;
+  public ShadeWeightingFactory(BaseGraph graph,
+      EncodingManager encodingManager, Map<Integer, Double> shadeData) {
+    super(graph, encodingManager);
+    this.shadeData = shadeData;
   }
 
+  /**
+   * Creates ShadedCustomWeighting with shade data for the request.
+   * The code is mostly from the original method.
+   */
   @Override
   public Weighting createWeighting(Profile profile, PMap requestHints, boolean disableTurnCosts) {
-    // Merge profile hints with request hints, the request hints take precedence.
-    // Note that so far we do not check if overwriting the profile hints actually works with the preparation
-    // for LM/CH. Later we should also limit the number of parameters that can be used to modify the profile.
+    if (!"foot_walking".equals(profile.getName()) && !"foot_running".equals(
+        profile.getName()) && !"biking".equals(profile.getName()) && !"preliminary".equals(
+        profile.getName())) {
+      throw new IllegalArgumentException("Invalid profile name: " + profile.getName());
+    }
+
     PMap hints = new PMap();
     hints.putAll(profile.getHints());
     hints.putAll(requestHints);
@@ -72,8 +66,8 @@ public class DefaultWeightingFactory implements WeightingFactory {
         throw new IllegalArgumentException(
             "Using left_turn_costs,sharp_left_turn_costs,right_turn_costs,sharp_right_turn_costs or straight_costs for turn_costs requires 'orientation' in graph.encoded_values");
       }
-      int uTurnCosts = hints.getInt(Parameters.Routing.U_TURN_COSTS,
-          profile.getTurnCostsConfig().getUTurnCosts());
+      int uTurnCosts = hints.getInt(
+          Parameters.Routing.U_TURN_COSTS, profile.getTurnCostsConfig().getUTurnCosts());
       TurnCostsConfig tcConfig = new TurnCostsConfig(profile.getTurnCostsConfig()).setUTurnCosts(
           uTurnCosts);
       turnCostProvider = new DefaultTurnCostProvider(turnRestrictionEnc, oEnc, graph, tcConfig);
@@ -82,9 +76,6 @@ public class DefaultWeightingFactory implements WeightingFactory {
     }
 
     String weightingStr = toLowerCase(profile.getWeighting());
-    if (weightingStr.isEmpty()) {
-      throw new IllegalArgumentException("You have to specify a weighting");
-    }
 
     Weighting weighting = null;
     if (CustomWeighting.NAME.equalsIgnoreCase(weightingStr)) {
@@ -96,16 +87,9 @@ public class DefaultWeightingFactory implements WeightingFactory {
             requestHints.getDouble(Parameters.Routing.HEADING_PENALTY,
                 Parameters.Routing.DEFAULT_HEADING_PENALTY));
       }
-      if (hints.has("cm_version")) {
-        if (!hints.getString("cm_version", "").equals("2")) {
-          throw new IllegalArgumentException("cm_version: \"2\" is required");
-        }
-        weighting = CustomModelParser.createWeighting2(encodingManager, turnCostProvider,
-            mergedCustomModel);
-      } else {
-        weighting = CustomModelParser.createWeighting(encodingManager, turnCostProvider,
-            mergedCustomModel);
-      }
+
+      weighting = CustomModelHelper.createWeighting(encodingManager, turnCostProvider,
+          mergedCustomModel, shadeData);
 
     } else if ("shortest".equalsIgnoreCase(weightingStr)) {
       throw new IllegalArgumentException(

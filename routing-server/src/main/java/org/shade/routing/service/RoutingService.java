@@ -69,77 +69,84 @@ public class RoutingService {
   private String dataServiceUrl;
 
   public RouteResponse getRoute(String jobId) {
-      JobMetadata metadata = retrieveJobMetadata(jobId);
-      Map<Integer, Double> shadeData = retrieveJobShadeData(jobId);
-      Map<Integer, Edge> edgeMap = retrieveJobEdgeMap(jobId);
+    // retrieve job-related data
+    JobMetadata metadata = retrieveJobMetadata(jobId);
+    Map<Integer, Double> shadeData = retrieveJobShadeData(jobId);
+    Map<Integer, Edge> edgeMap = retrieveJobEdgeMap(jobId);
 
-      RequestContext.setMetadata(metadata);
+    // store job metadata in RequestContext for easy access in GH
+    RequestContext.setMetadata(metadata);
 
-      GHRequest ghRequest = buildGHRequest(
-          metadata.getFromLat(),
-          metadata.getFromLon(),
-          metadata.getToLat(),
-          metadata.getToLon(),
-          Profiles.getProfileName(metadata.getMode()),
-          Algorithms.ASTAR
-      );
+    GHRequest ghRequest = buildGHRequest(
+        metadata.getFromLat(),
+        metadata.getFromLon(),
+        metadata.getToLat(),
+        metadata.getToLon(),
+        Profiles.getProfileName(metadata.getMode()),
+        Algorithms.ASTAR
+    );
 
-      ghRequest.setPathDetails(
-          Arrays.asList(Details.EDGE_ID, Details.DISTANCE));
+    // include path details in the GH response
+    ghRequest.setPathDetails(
+        Arrays.asList(Details.EDGE_ID, Details.DISTANCE));
 
-      GHResponse ghResponse = hopper.route(ghRequest);
+    GHResponse ghResponse = hopper.route(ghRequest);
 
-      if (ghResponse.hasErrors()) {
-        throw new RuntimeException(ghResponse.getErrors().toString());
-      }
+    if (ghResponse.hasErrors()) {
+      throw new RuntimeException(ghResponse.getErrors().toString());
+    }
 
-      ResponsePath bestPath = ghResponse.getBest();
+    ResponsePath bestPath = ghResponse.getBest();
 
-      List<PathDetail> edgeIdDetails = bestPath.getPathDetails().get(Details.EDGE_ID);
-      List<PathDetail> distanceDetails = bestPath.getPathDetails().get(Details.DISTANCE);
-      PointList pointList = bestPath.getPoints();
+    List<PathDetail> edgeIdDetails = bestPath.getPathDetails().get(Details.EDGE_ID);
+    List<PathDetail> distanceDetails = bestPath.getPathDetails().get(Details.DISTANCE);
+    PointList pointList = bestPath.getPoints();
 
-      List<EdgeDetail> edgeDetails = new ArrayList<>();
+    List<EdgeDetail> edgeDetails = new ArrayList<>();
 
-      double totalWeightedCoverage = 0;
+    // calculate weighted average coverage of the route
+    double totalWeightedCoverage = 0;
 
-      for (int i = 0; i < edgeIdDetails.size(); i++) {
-        Integer edgeId = (Integer) edgeIdDetails.get(i).getValue();
-        double distance = (double) distanceDetails.get(i).getValue();
-        double coverage = shadeData.get(edgeId);
+    for (int i = 0; i < edgeIdDetails.size(); i++) {
+      Integer edgeId = (Integer) edgeIdDetails.get(i).getValue();
+      double distance = (double) distanceDetails.get(i).getValue();
+      double coverage = shadeData.get(edgeId);
 
-        edgeDetails.add(
-            new EdgeDetail(distance, coverage, edgeMap.get(edgeId).points()));
+      edgeDetails.add(
+          new EdgeDetail(distance, coverage, edgeMap.get(edgeId).points()));
 
-        totalWeightedCoverage += distance * coverage;
-      }
+      totalWeightedCoverage += distance * coverage;
+    }
 
-      double totalDistance = bestPath.getDistance();
-      double weightedAverageCoverage =
-          totalDistance == 0 ? 0 : totalWeightedCoverage / totalDistance;
+    double totalDistance = bestPath.getDistance();
+    double weightedAverageCoverage =
+        totalDistance == 0 ? 0 : totalWeightedCoverage / totalDistance;
 
-      List<Double[]> pathPoints = new ArrayList<>();
-      pointList.forEach(p -> pathPoints.add(p.toGeoJson()));
+    List<Double[]> pathPoints = new ArrayList<>();
+    pointList.forEach(p -> pathPoints.add(p.toGeoJson()));
 
-      List<InstructionDetail> instructions = new ArrayList<>();
-      InstructionList instructionList = bestPath.getInstructions();
-      Translation tr = hopper.getTranslationMap().getWithFallBack(Locale.CANADA);
-      int idx = 0;
-      for (Instruction instruction : instructionList) {
-        int tempIdx = idx + instruction.getLength();
-        int[] interval = new int[]{idx, tempIdx};
-        InstructionDetail i = new InstructionDetail(instruction.getName(),
-            instruction.getTurnDescription(tr),
-            instruction.getTime(), instruction.getDistance(), interval);
-        instructions.add(i);
-        idx = tempIdx;
-      }
+    // prepare turn-by-turn instructions
+    List<InstructionDetail> instructions = new ArrayList<>();
+    InstructionList instructionList = bestPath.getInstructions();
+    Translation tr = hopper.getTranslationMap().getWithFallBack(Locale.CANADA);
+    int idx = 0;
+    for (Instruction instruction : instructionList) {
+      int tempIdx = idx + instruction.getLength();
+      int[] interval = new int[]{idx, tempIdx};
+      InstructionDetail i = new InstructionDetail(instruction.getName(),
+          instruction.getTurnDescription(tr),
+          instruction.getTime(), instruction.getDistance(), interval);
+      instructions.add(i);
+      idx = tempIdx;
+    }
 
-      return new RouteResponse(pathPoints, edgeDetails, bestPath.getRouteWeight(),
-          bestPath.getDistance(), weightedAverageCoverage, instructions);
-
+    return new RouteResponse(pathPoints, edgeDetails, bestPath.getRouteWeight(),
+        bestPath.getDistance(), weightedAverageCoverage, instructions);
   }
 
+  /**
+   * Retrieves metadata for a specific job from Redis.
+   */
   private JobMetadata retrieveJobMetadata(String jobId) {
     Object value = redisTemplate.opsForValue().get("job:" + jobId + ":metadata");
 
@@ -150,6 +157,9 @@ public class RoutingService {
     return objectMapper.convertValue(value, JobMetadata.class);
   }
 
+  /**
+   * Retrieves shade data for a specific job from Redis.
+   */
   private Map<Integer, Double> retrieveJobShadeData(String jobId) {
     String key = "job:" + jobId + ":result";
     Map<Object, Object> data = redisTemplate.opsForHash().entries(key);
@@ -158,11 +168,18 @@ public class RoutingService {
             e -> Double.parseDouble(e.getValue().toString())));
   }
 
+  /**
+   * Performs preflight routing for a request, which helps find the bounding box.
+   */
   private ResponsePath doPreliminaryPathfinding(GHRequest ghRequest) {
     GHResponse ghResponse = hopper.route(ghRequest);
     return ghResponse.getBest();
   }
 
+  /**
+   * Constructs the GH routing request with start and end coordinates, the profile and the algorithm
+   * to use.
+   */
   private GHRequest buildGHRequest(double fromLat, double fromLon, double toLat, double toLon,
       String profileName, String algorithm) {
     GHRequest ghRequest = new GHRequest(fromLat, fromLon, toLat, toLon);
@@ -171,6 +188,11 @@ public class RoutingService {
     return ghRequest;
   }
 
+  /**
+   * Iterates over the blocks of the bounding box formed by the route from preflight routing,
+   * divides each block further into cells, and construct an object containing the blocks, cells,
+   * and graph edges of their id, length, and points.
+   */
   public List<Block> getEdges(String jobId, double fromLat, double fromLon, double toLat,
       double toLon) {
     GHRequest prelimRequest = buildGHRequest(fromLat, fromLon, toLat, toLon,
@@ -247,6 +269,10 @@ public class RoutingService {
     return v;
   }
 
+  /**
+   * Initiates a routing request by splitting the job and sending to the data service for shade data
+   * scraping.
+   */
   public ScrapeRequestDto init(RouteRequestDto routeRequestDto) {
     String jobId = UUID.randomUUID().toString();
 
@@ -287,6 +313,9 @@ public class RoutingService {
     return scrapeRequestDto;
   }
 
+  /**
+   * Initiates the actual routing request on callback from data service and stores the result.
+   */
   public void callback(String jobId) {
     CompletableFuture.supplyAsync(() ->
         getRoute(jobId)
@@ -300,10 +329,18 @@ public class RoutingService {
     });
   }
 
+  /**
+   * Returns the result for a specific job.
+   */
   public RouteResponse getResult(String jobId) {
     return pendingResults.remove(jobId);
   }
 
+  /**
+   * Splits the list of blocks in a job into smaller partitions for parallel processing.
+   * Each partition contains at most {PARTITION_SIZE} blocks. This allows the data service
+   * workers to process subsets of the job concurrently.
+   */
   private List<List<Block>> partitionJob(List<Block> job) {
     List<List<Block>> partitions = new ArrayList<>();
     for (int i = 0; i < job.size(); i += PARTITION_SIZE) {
@@ -312,6 +349,9 @@ public class RoutingService {
     return partitions;
   }
 
+  /**
+   * Stores metadata for a specific job in Redis.
+   */
   private void storeJobMetaData(String jobId, int totalPartitions, int timeStamp, double fromLat,
       double fromLon, double toLat, double toLon, double parameter, String mode) {
     JobMetadata metadata = new JobMetadata(
@@ -329,16 +369,25 @@ public class RoutingService {
     redisTemplate.opsForValue().set("job:" + jobId + ":metadata", metadata);
   }
 
+  /**
+   * Stores split workload of a specific job in Redis, preventing sending large payload over http.
+   */
   private void storePartitionedJob(String jobId, List<List<Block>> partitions) {
     for (int i = 0; i < partitions.size(); i++) {
       redisTemplate.opsForValue().set("job:" + jobId + ":" + i, partitions.get(i));
     }
   }
 
+  /**
+   * Stores a mapping between id and edge in Redis.
+   */
   private void storeJobEdgeMap(String jobId, Map<Integer, Edge> edgeMap) {
     redisTemplate.opsForHash().putAll("job:" + jobId + ":edgeMap", edgeMap);
   }
 
+  /**
+   * Retrieves the mapping between id and edge for a specific job from Redis.
+   */
   private Map<Integer, Edge> retrieveJobEdgeMap(String jobId) {
     return redisTemplate.opsForHash().entries("job:" + jobId + ":edgeMap")
         .entrySet()
