@@ -1,7 +1,7 @@
-import { Text, View, StyleSheet } from 'react-native';
+import { Text, View, StyleSheet, FlatList } from 'react-native';
 import TimeDialog from './TimeDialog';
 import { useState } from 'react';
-import { EDITING, NAVIGATING } from '@/lib/types';
+import { APP_STATE } from '@/lib/types';
 import React from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAppState } from '@/hooks/useAppState/useAppState';
@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { Button, IconButton } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 
-interface ControlPanelProps {
+type ControlPanelProps = {
   open: boolean;
   onStartTrip: () => void;
   onEndTrip: () => void;
@@ -19,10 +19,11 @@ interface ControlPanelProps {
   inPreview?: boolean;
   navInfo?: {
     distanceTraveled: number;
-    speed: number;
+    averageSpeed: number;
     arrivalTime: number;
+    speed: number;
   };
-}
+};
 
 export default function ControlPanel({
   open,
@@ -36,6 +37,7 @@ export default function ControlPanel({
   const { state } = useAppState();
   const { parameter, setParameter } = useOptions();
   const [timeDialogOpen, setTimeDialogOpen] = useState<boolean>(false);
+  const [localParameter, setLocalParameter] = useState<number>(parameter);
 
   if (!open) return null;
 
@@ -44,12 +46,21 @@ export default function ControlPanel({
       <View style={styles.previewButtonsContainer}>
         <Button
           onPress={onEdit}
-          style={[styles.previewButton, { backgroundColor: 'red' }]}
+          labelStyle={{ fontSize: 18 }}
+          textColor="white"
+          buttonColor="#FF0000"
+          style={styles.previewButton}
         >
           Back
         </Button>
 
-        <Button onPress={onStartTrip} style={styles.previewButton}>
+        <Button
+          onPress={onStartTrip}
+          labelStyle={{ fontSize: 18 }}
+          textColor="white"
+          buttonColor="#59cd90"
+          style={[styles.previewButton, { marginBottom: 12 }]}
+        >
           Go
         </Button>
       </View>
@@ -59,44 +70,51 @@ export default function ControlPanel({
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
-        {state === NAVIGATING ? (
+        {state === APP_STATE.NAVIGATING ? (
           <>
-            <View style={{ alignSelf: 'flex-end' }}>
-              <IconButton
-                onPress={onEdit}
-                icon={() => (
-                  <MaterialIcons name="settings" size={24} color="white" />
-                )}
-              />
-            </View>
-
             {navInfo && (
               <View style={styles.navInfoContainer}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                <FlatList
+                  data={[
+                    { label: 'Distance', value: navInfo.distanceTraveled },
+                    { label: 'Current Speed', value: navInfo.speed },
+                    { label: 'Average Speed', value: navInfo.averageSpeed },
+                    {
+                      label: 'Arrival',
+                      value: format(navInfo.arrivalTime, 'hh:mm a'),
+                    },
+                  ]}
+                  renderItem={({ item }) => (
+                    <View
+                      style={{
+                        alignItems: 'center',
+                        rowGap: 6,
+                        width: '50%',
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: '#666' }}>
+                        {item.label}
+                      </Text>
+                      <Text style={{ fontSize: 16 }}>{item.value}</Text>
+                    </View>
+                  )}
+                  numColumns={2}
+                  contentContainerStyle={{
+                    flex: 1,
+                    rowGap: 12,
+                    justifyContent: 'center',
                   }}
-                >
-                  <Text style={{ fontSize: 16 }}>
-                    <Text style={{ fontWeight: 'bold' }}>Travelled:</Text>{' '}
-                    {navInfo.distanceTraveled.toFixed(1)} m
-                  </Text>
-                  <Text style={{ fontSize: 16 }}>
-                    <Text style={{ fontWeight: 'bold' }}>Speed:</Text>{' '}
-                    {navInfo.speed.toFixed(1)} m/s
-                  </Text>
-                </View>
-
-                <Text style={{ fontSize: 16 }}>
-                  <Text style={{ fontWeight: 'bold' }}>Arrival:</Text>{' '}
-                  {format(new Date(navInfo.arrivalTime), 'HH:mm')}
-                </Text>
+                />
               </View>
             )}
 
-            <Button onPress={onEndTrip} style={{ backgroundColor: 'red' }}>
+            <Button
+              onPress={onEndTrip}
+              buttonColor="#FF0000"
+              textColor="white"
+              labelStyle={{ fontSize: 18 }}
+              style={{ borderRadius: 6 }}
+            >
               End trip
             </Button>
           </>
@@ -114,24 +132,27 @@ export default function ControlPanel({
               <Text style={styles.sliderLabel}>Shortest distance</Text>
               <Slider
                 style={styles.slider}
-                value={parameter}
+                value={localParameter}
                 minimumValue={0}
                 maximumValue={1}
                 step={0.1}
-                onValueChange={setParameter}
-                minimumTrackTintColor="#FF6403"
+                onValueChange={setLocalParameter}
+                onSlidingComplete={() => setParameter(localParameter)}
+                minimumTrackTintColor="#ee6352"
                 maximumTrackTintColor="#000000"
-                thumbTintColor="#FF6403"
+                thumbTintColor="#ee6352"
               />
               <Text style={styles.sliderLabel}>Most shade</Text>
             </View>
 
             <Button
               onPress={onConfirmSettings}
-              buttonColor="#FF6403"
+              buttonColor="#ee6352"
               textColor="white"
+              labelStyle={{ fontSize: 18 }}
+              style={{ borderRadius: 6, marginBottom: 12 }}
             >
-              {state === EDITING ? 'Go' : 'Confirm'}
+              {state === APP_STATE.EDITING ? 'Go' : 'Confirm'}
             </Button>
           </>
         )}
@@ -146,7 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: 'white',
     borderRadius: 16,
-    height: 200,
+    height: 220,
   },
   contentContainer: {
     flex: 1,
@@ -174,6 +195,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
+    width: 80,
   },
   previewButtonsContainer: {
     marginVertical: 24,
@@ -181,9 +203,9 @@ const styles = StyleSheet.create({
     rowGap: 12,
   },
   previewButton: {
-    backgroundColor: '#FF6403',
+    borderRadius: 6,
   },
   navInfoContainer: {
-    rowGap: 6,
+    flexGrow: 1,
   },
 });

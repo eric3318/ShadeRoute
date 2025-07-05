@@ -1,21 +1,23 @@
 import { getDocuments } from '@/utils/firebaseHelpers';
 import { createContext, ReactNode, useState, useEffect } from 'react';
+import { City, Mode } from '@/lib/types';
 
 type Options = {
-  city: string;
-  cityOptions: { name: string; center: [number, number] }[];
-  mode: string;
+  city: City | null;
+  cityOptions: City[];
+  mode: Mode;
   date: Date | null;
   parameter: number;
-  setCity: (city: string) => void;
-  setMode: (mode: string) => void;
+  setCity: (city: City) => void;
+  setMode: (mode: Mode) => void;
   setDate: (date: Date | null) => void;
   setParameter: (parameter: number) => void;
 };
+
 const OptionsContext = createContext<Options>({
-  city: '',
+  city: null,
   cityOptions: [],
-  mode: '',
+  mode: Mode.RUNNING,
   date: null,
   parameter: 0,
   setCity: () => {},
@@ -29,27 +31,29 @@ type OptionsProviderProps = {
 };
 
 const OptionsProvider = ({ children }: OptionsProviderProps) => {
-  const [city, setCity] = useState<string>('');
-  const [cityOptions, setCityOptions] = useState<
-    { name: string; center: [number, number] }[]
-  >([]);
-  const [mode, setMode] = useState<string>('running');
+  const [city, setCity] = useState<City | null>(null);
+  const [cityOptions, setCityOptions] = useState<City[]>([]);
+  const [mode, setMode] = useState<Mode>(Mode.RUNNING);
   const [date, setDate] = useState<Date | null>(null);
   const [parameter, setParameter] = useState<number>(0);
 
   useEffect(() => {
     async function fetchCityOptions() {
       const cityDocs = await getDocuments('cities');
+
       if (!cityDocs) {
         return;
       }
+
       const cityOptions = cityDocs.map((doc) => ({
         name: doc.name,
-        center: doc.center,
+        coordinates: doc.coordinates,
       }));
+
       setCityOptions(cityOptions);
-      setCity(cityOptions[0].name);
+      setCity(cityOptions[0]);
     }
+
     fetchCityOptions();
   }, []);
 

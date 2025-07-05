@@ -1,9 +1,9 @@
 import { View, StyleSheet, Image, Text } from 'react-native';
-import { SavedRoute } from '@/app/(tabs)/routes-saved';
 import { format } from 'date-fns';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { Button, IconButton } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { SavedRoute } from '@/lib/types';
+
 type RouteListItemProps = {
   route: SavedRoute;
 };
@@ -42,11 +42,7 @@ export default function RouteListItem({ route }: RouteListItemProps) {
             <FontAwesome5 name="arrow-circle-right" size={22} color="#023047" />
           )}
         /> */}
-        <Button
-          mode="contained"
-          onPress={onRoutePress}
-          icon="arrow-right"
-        ></Button>
+        <Button mode="contained" onPress={onRoutePress} icon="arrow-right" />
       </View>
     </View>
   );

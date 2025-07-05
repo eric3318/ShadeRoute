@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button as RNPButton, Portal, Dialog } from 'react-native-paper';
+import { Button, Portal, Dialog } from 'react-native-paper';
 import { View } from 'react-native';
 import TimePicker from './TimePicker';
 import { useState } from 'react';
@@ -48,18 +48,19 @@ function TimeDialog({ open, onOpenChange }: TimeDialogProps) {
 
   return (
     <>
-      <RNPButton
+      <Button
         mode="contained"
-        buttonColor="#023047"
         onPress={() => onOpenChangeHandler(true)}
         style={styles.triggerButton}
       >
         {date ? format(date, 'MMM d, hh:mm aaa') : 'Now'}
-      </RNPButton>
+      </Button>
 
       <Portal>
         <Dialog visible={open} onDismiss={hideDialog} style={styles.dialog}>
-          <Dialog.Title>Trip begins</Dialog.Title>
+          <Dialog.Title style={{ fontSize: 18, fontWeight: 'bold' }}>
+            Change trip time
+          </Dialog.Title>
 
           <Dialog.Content>
             <TimePicker
@@ -70,23 +71,23 @@ function TimeDialog({ open, onOpenChange }: TimeDialogProps) {
 
             <View style={styles.buttonContainer}>
               {mode === 'time' && (
-                <RNPButton
+                <Button
                   mode="outlined"
                   onPress={onLastButtonClick}
-                  style={styles.button}
                   textColor="#FF0000"
+                  style={styles.lastButton}
                 >
                   Choose a different day
-                </RNPButton>
+                </Button>
               )}
 
-              <RNPButton
+              <Button
                 mode="contained"
                 onPress={onNextButtonClick}
-                style={styles.button}
+                style={styles.nextButton}
               >
                 Next
-              </RNPButton>
+              </Button>
             </View>
           </Dialog.Content>
         </Dialog>
@@ -96,19 +97,24 @@ function TimeDialog({ open, onOpenChange }: TimeDialogProps) {
 }
 
 const styles = StyleSheet.create({
-  dialog: {
-    position: 'absolute',
-    bottom: '50%',
-  },
   buttonContainer: {
     gap: 12,
-    marginTop: 16,
-  },
-  button: {
-    marginVertical: 4,
   },
   triggerButton: {
-    borderRadius: 8,
+    borderRadius: 6,
+    backgroundColor: '#255f85',
+  },
+  dialog: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 6,
+  },
+  nextButton: {
+    borderRadius: 6,
+    backgroundColor: '#255f85',
+  },
+  lastButton: {
+    borderRadius: 6,
+    borderColor: '#FF0000',
   },
 });
 

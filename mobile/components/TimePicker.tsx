@@ -3,7 +3,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 
-interface TimePickerProps {
+type TimePickerProps  ={
   mode: 'date' | 'time';
   date: Date | null;
   onTimeChange: (date: Date) => void;

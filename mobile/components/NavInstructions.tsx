@@ -5,95 +5,121 @@ import * as turf from '@turf/turf';
 import * as Speech from 'expo-speech';
 import { useLocation } from '@/hooks/useLocation/useLocation';
 
-export type Instruction = {
-  name: string;
-  distance: number;
-  points: [number, number][];
-  time: number;
-  turnDescription: string;
-};
+import { GeoJsonProperties, Feature, Point } from 'geojson';
+import { Instruction } from '@/lib/types';
 
 type NavInstructionsProps = {
   instructions: Instruction[];
+  startTime: Date;
   totalDistance: number;
   onInfoChange: (
     distanceTraveled: number,
-    speed: number,
-    arrivalTime: number
+    averageSpeed: number,
+    arrivalTime: number,
+    speed: number
   ) => void;
+  onHeadingChange: (heading: number) => void;
+  onEndTrip: () => void;
 };
 
 export default function NavInstructions({
   instructions,
+  startTime,
   totalDistance,
   onInfoChange,
+  onHeadingChange,
+  onEndTrip,
 }: NavInstructionsProps) {
-  const [currentInstruction, setCurrentInstruction] =
-    useState<Instruction | null>(null);
-  const { location, setLocation } = useLocation();
+  const [currentInstruction, setCurrentInstruction] = useState<Instruction>(
+    instructions[0]
+  );
+  const { setLocation } = useLocation();
   const [index, setIndex] = useState(0);
-  const [startTime, setStartTime] = useState<Date>(new Date());
-  const [speed, setSpeed] = useState<number>(0);
   const [distanceTraveled, setDistanceTraveled] = useState<number>(0);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [
+    distanceTraveledCurrentInstruction,
+    setDistanceTraveledCurrentInstruction,
+  ] = useState<number>(0);
+  const [distanceToNextInstruction, setDistanceToNextInstruction] =
+    useState<number>(0);
+  const [speed, setSpeed] = useState<number>(0);
+  const [isOnRoute, setIsOnRoute] = useState<boolean>(false);
+  const [isInitial, setIsInitial] = useState<boolean>(true);
 
   useEffect(() => {
-    const setupLocationTracking = async () => {
-      const subscription = await subscribeToLocationUpdates();
-      return () => {
-        if (subscription) {
-          subscription.remove();
-        }
-      };
+    let locationSubscription: Location.LocationSubscription;
+    let headingSubscription: Location.LocationSubscription;
+
+    const getLocationSubscription = async () => {
+      locationSubscription = await subscribeToLocationUpdates();
     };
-    setupLocationTracking();
+
+    const getHeadingSubscription = async () => {
+      headingSubscription = await subscribeToHeadingUpdates();
+    };
+
+    getLocationSubscription();
+    getHeadingSubscription();
 
     return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+
+      if (headingSubscription) {
+        headingSubscription.remove();
+      }
+
       Speech.stop();
     };
   }, []);
 
-  const speakInstruction = async (instruction: Instruction) => {
-    if (isSpeaking) {
-      await Speech.stop();
-    }
+  const speakInstruction = async (
+    instruction: Instruction,
+    distanceToNextInstruction?: number,
+    next = false
+  ) => {
+    const distanceText = `${Math.round(distanceToNextInstruction ?? instruction.distance)} meters`;
 
-    setIsSpeaking(true);
-    const distanceText = `${Math.round(instruction.distance)} meters`;
-    const speechText = `${instruction.turnDescription} in ${distanceText}`;
+    const speech = `${instruction.turnDescription} ${
+      next ? 'in' : 'for'
+    } ${distanceText}`;
 
     try {
-      await Speech.speak(speechText, {
+      Speech.speak(speech, {
         rate: 0.9,
         pitch: 1.0,
-        onDone: () => setIsSpeaking(false),
-        onError: () => setIsSpeaking(false),
       });
     } catch (error) {
       console.error('Speech error:', error);
-      setIsSpeaking(false);
     }
   };
-
-  useEffect(() => {
-    if (currentInstruction) {
-      speakInstruction(currentInstruction);
-    }
-  }, [currentInstruction]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const currentTime = new Date();
       const timeElapsed = (currentTime.getTime() - startTime.getTime()) / 1000;
-      const currentSpeed = distanceTraveled / timeElapsed;
+      const averageSpeed = distanceTraveled / timeElapsed;
+
       const arrivalTime =
         startTime.getTime() +
-        (totalDistance / (currentSpeed || 4828 / 3600)) * 1000;
-      setSpeed(currentSpeed);
-      onInfoChange(distanceTraveled, currentSpeed, arrivalTime);
+        (totalDistance / (averageSpeed || 4828 / 3600)) * 1000;
+
+      onInfoChange(distanceTraveled, averageSpeed, arrivalTime, speed);
     }, 1000);
     return () => clearInterval(interval);
-  }, [distanceTraveled, startTime]);
+  }, [distanceTraveled, speed]);
+
+  const calculateDistance = (
+    snappedLocation: turf.helpers.Coord,
+    userLocation: turf.helpers.Coord
+  ) => {
+    const distance = turf.distance(snappedLocation, userLocation, {
+      units: 'meters',
+    });
+
+    return distance;
+  };
 
   const subscribeToLocationUpdates = async () => {
     const locationSubscription = await Location.watchPositionAsync(
@@ -105,56 +131,175 @@ export default function NavInstructions({
           location.coords.longitude,
           location.coords.latitude,
         ];
-        setLocation(coords);
-        if (currentInstruction) {
-          const distanceFromCurrentInstructionStart = turf.distance(
-            turf.point(coords),
-            turf.point(currentInstruction.points[0]),
-            { units: 'meters' }
-          );
-          setDistanceTraveled(distanceFromCurrentInstructionStart);
 
-          const from = turf.point(coords);
-          const to = turf.point(
-            currentInstruction.points[currentInstruction.points.length - 1]
+        if (location.coords.speed) {
+          setSpeed(location.coords.speed);
+        }
+
+        // update distance traveled
+
+        const point = turf.point(coords);
+
+        let snappedLocation: Feature<Point, GeoJsonProperties> | Point;
+        const singlePointInstruction = currentInstruction.points.length <= 1;
+
+        if (singlePointInstruction) {
+          snappedLocation = turf.point(currentInstruction.points[0]);
+        } else {
+          const lineString = turf.lineString(currentInstruction.points);
+          snappedLocation = turf.nearestPointOnLine(lineString, point);
+        }
+
+        const distance = calculateDistance(snappedLocation, point);
+
+        if (distance > 50) {
+          handleOffRoute(coords);
+          return;
+        }
+
+        if (!isOnRoute) {
+          setIsOnRoute(true);
+        }
+
+        setLocation([
+          snappedLocation.geometry.coordinates[0],
+          snappedLocation.geometry.coordinates[1],
+        ]);
+
+        let distanceToNextInstruction;
+
+        if (singlePointInstruction) {
+          distanceToNextInstruction = currentInstruction.distance - distance;
+
+          if (!isInitial && distanceToNextInstruction < 5) {
+            setDistanceTraveled((prev) => prev + currentInstruction.distance);
+            setDistanceTraveledCurrentInstruction(0);
+          }
+        } else {
+          const lineString = turf.lineString(currentInstruction.points);
+
+          const lineSlice = turf.lineSlice(
+            turf.point(currentInstruction.points[0]),
+            snappedLocation,
+            lineString
           );
-          const distanceUntilNextInstruction = turf.distance(from, to, {
+
+          const distanceFromCurrentInstructionStart = turf.length(lineSlice, {
             units: 'meters',
           });
 
-          if (distanceUntilNextInstruction < 50 && !isSpeaking) {
-            speakInstruction(currentInstruction);
-          }
+          distanceToNextInstruction =
+            currentInstruction.distance - distanceFromCurrentInstructionStart;
 
-          if (distanceUntilNextInstruction < 10) {
-            if (index < instructions.length - 1) {
-              const nextInstruction = instructions[index + 1];
-              setCurrentInstruction(nextInstruction);
-              setIndex(index + 1);
+          if (!isInitial) {
+            if (distanceToNextInstruction < 5) {
+              setDistanceTraveled(
+                (prev) =>
+                  prev +
+                  currentInstruction.distance -
+                  distanceTraveledCurrentInstruction
+              );
+              setDistanceTraveledCurrentInstruction(0);
             } else {
-              Speech.speak('You have reached your destination');
-              setCurrentInstruction(null);
-              setIndex(0);
+              setDistanceTraveled(
+                (prev) =>
+                  prev +
+                  distanceFromCurrentInstructionStart -
+                  distanceTraveledCurrentInstruction
+              );
+
+              setDistanceTraveledCurrentInstruction(
+                distanceFromCurrentInstructionStart
+              );
             }
           }
+        }
+
+        setDistanceToNextInstruction(distanceToNextInstruction);
+
+        if (index === 0 && isInitial) {
+          setIsInitial(false);
+          speakInstruction(currentInstruction, distanceToNextInstruction);
+        }
+
+        if (distanceToNextInstruction < 5) {
+          handleInstructionChange();
+          return;
+        }
+
+        if (distanceToNextInstruction < 30) {
+          speakNextInstruction(distanceToNextInstruction);
         }
       }
     );
     return locationSubscription;
   };
 
+  const handleOffRoute = (coords: [number, number]) => {
+    setLocation(coords);
+    const speech = isInitial
+      ? 'Please head to the start point'
+      : 'Please stay on the route';
+
+    Speech.speak(speech);
+    setIsOnRoute(false);
+  };
+
+  const handleInstructionChange = () => {
+    if (index < instructions.length - 1) {
+      setCurrentInstruction(instructions[index + 1]);
+      setIndex((prev) => prev + 1);
+    } else {
+      handleTripEnd();
+    }
+  };
+
+  const speakNextInstruction = (distanceToNextInstruction: number) => {
+    if (index < instructions.length - 1) {
+      speakInstruction(
+        instructions[index + 1],
+        distanceToNextInstruction,
+        true
+      );
+    } else {
+      Speech.speak(
+        `You will reach your destination in ${distanceToNextInstruction} meters`
+      );
+    }
+  };
+
+  const handleTripEnd = () => {
+    // TODO: Add a confirmation dialog
+    onEndTrip();
+  };
+
+  const subscribeToHeadingUpdates = async () => {
+    const headingSubscription = await Location.watchHeadingAsync((heading) => {
+      onHeadingChange(heading.trueHeading ?? heading.magHeading);
+    });
+    return headingSubscription;
+  };
+
   return (
     <View style={styles.container}>
-      {/* <Image source={require('@/assets/images/arrow-right.png')} /> */}
-      {/* <Text>Image here</Text> */}
-      <View style={styles.right}>
-        <Text style={styles.turnDescriptionText}>
-          {instructions?.[0]?.turnDescription}
-        </Text>
-        <Text style={styles.turnDescriptionText}>
-          {instructions?.[0]?.distance.toFixed(1)} m
-        </Text>
-      </View>
+      {isOnRoute ? (
+        <View style={styles.right}>
+          <Text style={styles.turnDescriptionText}>
+            {instructions?.[0]?.turnDescription}
+          </Text>
+          <Text style={styles.turnDescriptionText}>
+            {distanceToNextInstruction.toFixed(1)} m
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.right}>
+          <Text style={styles.turnDescriptionText}>
+            {isInitial
+              ? 'Proceed to the start point'
+              : 'Please stay on the route'}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }

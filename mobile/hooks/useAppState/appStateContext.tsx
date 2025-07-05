@@ -1,5 +1,5 @@
-import { APP_STATE, INITIAL, Route } from '@/lib/types';
-import { createContext, ReactNode, useState } from 'react';
+import { APP_STATE } from '@/lib/types';
+import { createContext, ReactNode, useState, useEffect } from 'react';
 
 type AppStates = {
   state: APP_STATE;
@@ -7,7 +7,7 @@ type AppStates = {
 };
 
 const AppStateContext = createContext<AppStates>({
-  state: INITIAL,
+  state: APP_STATE.INITIAL,
   setState: () => null,
 });
 
@@ -16,7 +16,7 @@ type AppStateProviderProps = {
 };
 
 const AppStateProvider = ({ children }: AppStateProviderProps) => {
-  const [state, setState] = useState<APP_STATE>(INITIAL);
+  const [state, setState] = useState<APP_STATE>(APP_STATE.INITIAL);
 
   return (
     <AppStateContext.Provider

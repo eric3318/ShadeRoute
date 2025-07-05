@@ -7,20 +7,22 @@ import {
   deleteDoc,
   getDocs,
   getDoc,
+  WithFieldValue,
+  DocumentData,
 } from 'firebase/firestore';
 
-export const addDocument = async (
-  collectionName: string,
-  subCollectionName: string = '',
-  data: any
-) => {
+export const addDocument = async <T extends WithFieldValue<DocumentData>>(
+  path: string,
+  data: T
+): Promise<string | null> => {
   try {
-    const path = `${collectionName}${subCollectionName && `/${subCollectionName}`}`;
     const collectionRef = collection(db, path);
     const docRef = await addDoc(collectionRef, data);
+
     if (!docRef) {
       return null;
     }
+
     return docRef.id;
   } catch (err) {
     console.log(err);
@@ -61,7 +63,9 @@ export const deleteDocument = async (
   }
 };
 
-export const getDocuments = async (collectionName: string) => {
+export const getDocuments = async <T>(
+  collectionName: string
+): Promise<(T & { id: string })[]> => {
   try {
     const collectionRef = collection(db, collectionName);
     const snapshot = await getDocs(collectionRef);

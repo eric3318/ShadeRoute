@@ -3,22 +3,24 @@ import { View, StyleSheet, Text } from 'react-native';
 import { useLocation } from '@/hooks/useLocation/useLocation';
 import {
   POINT_TYPE,
-  EDITING,
   START_POINT,
   END_POINT,
   TripPoints,
   Route,
-  NAVIGATING,
+  APP_STATE,
 } from '@/lib/types';
 import { useAppState } from '@/hooks/useAppState/useAppState';
 import RouteDisplay from './RouteDisplay';
 import { useEffect, useState } from 'react';
-interface MapProps {
+import { Image } from 'react-native';
+
+type MapProps = {
   route?: Route;
   center: [number, number] | undefined;
   points: TripPoints;
+  heading: number;
   onPointChange: (newPoint: [number, number], pointType: POINT_TYPE) => void;
-}
+};
 
 MapboxGL.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '');
 
@@ -26,6 +28,7 @@ export default function Map({
   center,
   points,
   route,
+  heading,
   onPointChange,
 }: MapProps) {
   const { location } = useLocation();
@@ -35,13 +38,10 @@ export default function Map({
     sw: [number, number];
   } | null>(null);
 
-  // Handle bounds and map centering
   useEffect(() => {
-    if (state === NAVIGATING) {
-      // During navigation, don't use bounds
+    if (state === APP_STATE.NAVIGATING) {
       setBounds(null);
     } else if (route?.path) {
-      // Calculate bounds of the route when not navigating
       const lngs = route.path.map((coord) => coord[0]);
       const lats = route.path.map((coord) => coord[1]);
 
@@ -50,7 +50,6 @@ export default function Map({
       const minLat = Math.min(...lats);
       const maxLat = Math.max(...lats);
 
-      // Add some padding to the bounds
       const lngPadding = (maxLng - minLng) * 0.4;
       const latPadding = (maxLat - minLat) * 0.4;
 
@@ -82,7 +81,7 @@ export default function Map({
         zoomLevel={bounds ? undefined : 15}
         animationMode={bounds ? 'flyTo' : 'moveTo'}
         centerCoordinate={
-          state === NAVIGATING && location
+          state === APP_STATE.NAVIGATING && location
             ? location
             : bounds
               ? undefined
@@ -99,15 +98,14 @@ export default function Map({
         <MapboxGL.PointAnnotation
           id="startPoint"
           coordinate={points.startPoint}
-          draggable={state === EDITING}
+          draggable={state === APP_STATE.EDITING}
           onDragEnd={(e) => onDragEnd(e, START_POINT)}
-          style={{ position: 'relative' }}
         >
           <View
             style={{
               width: 30,
               height: 30,
-              backgroundColor: 'green',
+              backgroundColor: '#ee6352',
               borderRadius: 15,
             }}
           />
@@ -118,14 +116,14 @@ export default function Map({
         <MapboxGL.PointAnnotation
           id="endPoint"
           coordinate={points.endPoint}
-          draggable={state === EDITING}
+          draggable={state === APP_STATE.EDITING}
           onDragEnd={(e) => onDragEnd(e, END_POINT)}
         >
           <View
             style={{
               width: 30,
               height: 30,
-              backgroundColor: 'orange',
+              backgroundColor: '#59cd90',
               borderRadius: 15,
             }}
           />
@@ -136,12 +134,18 @@ export default function Map({
         <MapboxGL.MarkerView id="currentLocation" coordinate={location}>
           <View
             style={{
-              width: 20,
-              height: 20,
-              backgroundColor: 'blue',
-              borderRadius: 10,
+              transform: [{ rotate: `${heading}deg` }],
+              alignItems: 'center',
             }}
-          />
+          >
+            <Image
+              source={require('@/assets/images/location.png')}
+              style={{
+                width: 52,
+                height: 52,
+              }}
+            />
+          </View>
         </MapboxGL.MarkerView>
       )}
     </MapboxGL.MapView>

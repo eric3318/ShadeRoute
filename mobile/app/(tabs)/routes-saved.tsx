@@ -6,16 +6,8 @@ import { getDocuments } from '@/utils/firebaseHelpers';
 import DropdownPicker from '@/components/DropdownPicker';
 import { Button, IconButton } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-export type SavedRoute = Route & {
-  id: string;
-  name: string;
-  city: string;
-  mode: string;
-  parameter: number;
-  tripTime: string;
-  totalDistance: number;
-  createdAt: string;
-};
+import { SavedRoute } from '@/lib/types';
+import { useAuth } from '@/hooks/useAuth/useAuth';
 
 const sortByOptions = ['Trip Date', 'Add Date', 'Distance', 'Name'];
 const cityFilterOptions = ['All', 'Vancouver', 'Toronto', 'New York'];
@@ -23,6 +15,7 @@ const modeFilterOptions = ['All', 'walking', 'running', 'biking'];
 
 export default function RoutesSaved() {
   const router = useRouter();
+  const { user } = useAuth();
   const [routes, setRoutes] = useState<SavedRoute[]>([]);
   const [filteredRoutes, setFilteredRoutes] = useState<SavedRoute[]>([]);
   const [sortBy, setSortBy] = useState<string>(sortByOptions[0]);
@@ -43,39 +36,42 @@ export default function RoutesSaved() {
   }, []);
 
   const getSavedRoutes = async () => {
-    try {
-      const data = await getDocuments('routes');
-
-      if (!data) {
-        console.error('No data found');
-        return;
-      }
-
-      const routesData = data.map((route) => {
-        const path = route.path.map(
-          (point: { longitude: number; latitude: number }) => {
-            return [point.longitude, point.latitude];
-          }
-        );
-        const edgeDetails = route.details;
-        return {
-          id: route.id,
-          name: route.name || 'Untitled',
-          edgeDetails,
-          path,
-          city: route.city,
-          mode: route.mode,
-          parameter: route.parameter,
-          tripTime: route.tripTime,
-          totalDistance: route.totalDistance,
-          createdAt: route.createdAt,
-        };
-      });
-      setRoutes(routesData);
-      setFilteredRoutes(routesData);
-    } catch (err) {
-      console.log(err);
+    if (!user) {
+      return;
     }
+
+    const data = await getDocuments<SavedRoute>(`users/${user.uid}/routes`);
+
+    if (!data) {
+      console.error('No data found');
+      return;
+    }
+
+    const routesData = data.map((route) => {
+      const path = route.path.map(
+        (point: { longitude: number; latitude: number }) => {
+          return [point.longitude, point.latitude];
+        }
+      );
+
+      const edgeDetails = route.details;
+
+      return {
+        id: route.id,
+        name: route.name || 'Untitled',
+        edgeDetails,
+        path,
+        city: route.city,
+        mode: route.mode,
+        parameter: route.parameter,
+        tripTime: route.tripTime,
+        totalDistance: route.distance,
+        createdAt: route.createdAt,
+      };
+    });
+
+    setRoutes(routesData);
+    setFilteredRoutes(routesData);
   };
 
   const onSortByChange = (value: string) => {

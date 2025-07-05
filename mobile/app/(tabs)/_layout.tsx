@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
-import { Button, IconButton } from 'react-native-paper';
+import { IconButton } from 'react-native-paper';
 
 export default function Layout() {
   return (
@@ -9,7 +9,7 @@ export default function Layout() {
       screenOptions={{
         headerTintColor: '#023047',
         headerStyle: {
-          backgroundColor: '#219ebc',
+          backgroundColor: '#3fa7d6',
         },
         headerTitleStyle: {
           fontWeight: 'normal',
@@ -20,13 +20,13 @@ export default function Layout() {
         name="routes-saved"
         options={{
           tabBarIcon: () => (
-            <FontAwesome5 name="route" size={24} color="#023047" />
+            <MaterialIcons name="folder" size={24} color="#3fa7d6" />
           ),
           tabBarLabel: 'saved routes',
           tabBarLabelStyle: {
             fontSize: 12,
             marginTop: 4,
-            color: '#219ebc',
+            color: '#3fa7d6',
           },
           headerTitle: 'Routes',
           headerLeft: () => (
@@ -50,13 +50,13 @@ export default function Layout() {
         name="my-trips"
         options={{
           tabBarIcon: () => (
-            <FontAwesome5 name="route" size={24} color="#023047" />
+            <MaterialIcons name="route" size={24} color="#3fa7d6" />
           ),
           tabBarLabel: 'my trips',
           tabBarLabelStyle: {
             fontSize: 12,
             marginTop: 4,
-            color: '#219ebc',
+            color: '#3fa7d6',
           },
           headerTitle: 'Trips',
         }}

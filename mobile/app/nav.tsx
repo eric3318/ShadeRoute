@@ -4,91 +4,122 @@ import LocationButton from '@/components/LocationButton';
 import Map from '@/components/Map';
 import {
   APP_STATE,
-  TripPoints,
   POINT_TYPE,
-  START_POINT,
-  INITIAL,
-  EDITING,
-  NAVIGATING,
   Route,
+  SavedRoute,
+  START_POINT,
+  TripPoints,
 } from '@/lib/types';
 import { useAppState } from '@/hooks/useAppState/useAppState';
 import ControlPanel from '@/components/ControlPanel';
 import { useOptions } from '@/hooks/useOptions/useOptions';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { Button, IconButton } from 'react-native-paper';
+import { IconButton } from 'react-native-paper';
 import { router } from 'expo-router';
-import NavInstructions, { Instruction } from '@/components/NavInstructions';
+import NavInstructions from '@/components/NavInstructions';
 import * as turf from '@turf/turf';
 import { useLocation } from '@/hooks/useLocation/useLocation';
 import { addDocument } from '@/utils/firebaseHelpers';
 import InputDialog from '@/components/InputDialog';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import Loader from '@/components/Loader';
+import { useAuth } from '@/hooks/useAuth/useAuth';
 
 const CLOSE_PROXIMITY_DISTANCE = 500;
 
 export default function Nav() {
+  const { user } = useAuth();
   const { state, setState } = useAppState();
-  const { city, cityOptions, mode, parameter, date: tripTime } = useOptions();
+  const { city, mode, parameter, date: tripTime } = useOptions();
+  const { location, requestLocation } = useLocation();
+
+  const [lastUsedTripTime, setLastUsedTripTime] = useState<number | null>(null);
   const [tripPoints, setTripPoints] = useState<TripPoints>({
     startPoint: null,
     endPoint: null,
   });
   const [route, setRoute] = useState<Route | null>(null);
-  const [instructions, setInstructions] = useState<Instruction[]>([]);
-  const [previousRoute, setPreviousRoute] = useState<Route | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(
-    cityOptions.find((option) => option.name === city)?.center
-  );
-  const [controlPanelOpen, setControlPanelOpen] = useState<boolean>(false);
-  const [inPreview, setInPreview] = useState<boolean>(false);
-  const { location, requestLocation } = useLocation();
-  const [routeEdited, setRouteEdited] = useState<boolean>(false);
+  const instructions = route?.instructions ?? [];
+  const [userRequestedLocation, setUserRequestedLocation] =
+    useState<boolean>(false);
+
+  const mapCenter = userRequestedLocation ? location : city?.coordinates;
+
+  const controlPanelOpen =
+    (state === APP_STATE.INITIAL &&
+      !!tripPoints.startPoint &&
+      !!tripPoints.endPoint) ||
+    state === APP_STATE.EDITING ||
+    state === APP_STATE.NAVIGATING;
+
+  const inPreview =
+    (state === APP_STATE.INITIAL || state === APP_STATE.EDITING) && !!route;
+
   const [imageUri, setImageUri] = useState<string>('');
   const [navInfo, setNavInfo] = useState<{
     distanceTraveled: number;
-    speed: number;
+    averageSpeed: number;
     arrivalTime: number;
+    speed: number;
   } | null>(null);
+  const [heading, setHeading] = useState<number>(0);
   const [inputDialogVisible, setInputDialogVisible] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [initialEdit, setInitialEdit] = useState<boolean>(true);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [speed, setSpeed] = useState<number>(0);
 
   const saveRoute = async (name?: string) => {
-    const path = route?.path.map((point) => {
+    if (
+      !tripPoints.startPoint ||
+      !tripPoints.endPoint ||
+      !route ||
+      !city ||
+      !mode ||
+      !lastUsedTripTime ||
+      !user
+    ) {
+      return;
+    }
+
+    const path = route.path.map((point) => {
       return { longitude: point[0], latitude: point[1] };
     });
 
-    const details = route?.edgeDetails.map((edge) => {
+    const details = route.details.map((edge) => {
       return {
-        points: edge.points,
-        shadeCoverage: edge.shadeCoverage,
+        points: edge.points.map((point) => ({
+          longitude: point[0],
+          latitude: point[1],
+        })),
+        coverage: edge.coverage,
         distance: edge.distance,
       };
     });
 
-    const routeData = {
-      ...(name && { name }),
-      startPoint: tripPoints.startPoint,
-      endPoint: tripPoints.endPoint,
+    const routeData: SavedRoute = {
+      name: name || 'Untitled',
+      start: tripPoints.startPoint,
+      end: tripPoints.endPoint,
       path,
       details,
-      city,
+      city: city.name,
       mode,
       parameter,
-      tripTime: tripTime ? tripTime.toISOString() : new Date().toISOString(),
-      totalDistance: route?.totalDistance,
+      timeStamp: lastUsedTripTime,
+      distance: route.distance,
+      weightedAverageCoverage: route.weightedAverageCoverage,
       createdAt: new Date().toISOString(),
     };
 
     try {
-      const docId = await addDocument('routes', undefined, routeData);
+      const docId = await addDocument(`users/${user.uid}/routes`, routeData);
+
       if (!docId) {
         Alert.alert('Failed to save route', 'Please try again');
         return;
       }
 
-      const jsonRouteData = JSON.stringify(routeData);
-      const key = `route:${docId}`;
-      await AsyncStorage.setItem(key, jsonRouteData);
+      console.log('Route saved successfully');
     } catch (err) {
       Alert.alert('Failed to save route', 'Please try again');
     }
@@ -109,137 +140,73 @@ export default function Nav() {
       throw new Error('Origin and destination points are required');
     }
 
-    try {
-      const edgeData = await fetchEdgeData({
-        fromLat: tripPoints.startPoint[1],
-        fromLon: tripPoints.startPoint[0],
-        toLat: tripPoints.endPoint[1],
-        toLon: tripPoints.endPoint[0],
-      });
+    const payload = {
+      fromLat: tripPoints.startPoint[1],
+      fromLon: tripPoints.startPoint[0],
+      toLat: tripPoints.endPoint[1],
+      toLon: tripPoints.endPoint[0],
+      mode,
+      parameter,
+      timeStamp: Math.floor((tripTime ?? new Date()).getTime() / 1000),
+    };
 
-      const shadowData = await fetchShadowData(edgeData);
-      const routeData = await fetchRouteData(shadowData);
-      return routeData;
+    try {
+      const response = await fetch(
+        // `${process.env.EXPO_PUBLIC_SERVER_URL}/api/route`,
+        // 'https://api.shadepath.com/api/route',
+        'http://localhost:8080/api/route',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Unsuccessful response from server');
+      }
+
+      const { jobId } = await response.json();
+
+      const route = await pollForResult(jobId);
+
+      return route;
     } catch (error) {
       console.error('Error while fetching route:', error);
-      throw error;
+      return null;
     }
   };
 
-  const fetchEdgeData = async (params: Record<string, number>) => {
-    try {
-      const queryString = Object.keys(params)
-        .map((key) => `${key}=${params[key]}`)
-        .join('&');
+  const pollForResult = (jobId: string): Promise<Route | null> => {
+    return new Promise((resolve) => {
+      const interval = setInterval(async () => {
+        try {
+          const response = await fetch(
+            // `${process.env.EXPO_PUBLIC_SERVER_URL}/api/results?jobId=${jobId}`
+            // `https://api.shadepath.com/api/results?jobId=${jobId}`
+            `http://localhost:8080/api/results?jobId=${jobId}`
+          );
 
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_ROUTE_SERVER_URL}/api/edges?${queryString}`
-      );
+          if (!response.ok) {
+            throw new Error('Unsuccessful response from server');
+          }
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch edge data: ${response.statusText}`);
-      }
+          if (response.status === 204) {
+            return;
+          }
 
-      const data = await response.json();
-      if (!data) {
-        throw new Error('Edge data response is empty');
-      }
-
-      return data;
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to fetch edge data');
-    }
-  };
-
-  const fetchShadowData = async (edgeData: any) => {
-    if (!edgeData) {
-      throw new Error('Edge data is required for shadow calculation');
-    }
-
-    try {
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_DATA_SERVER_URL}/api/shade`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            bBoxes: edgeData,
-            timestamp: (tripTime ?? new Date()).getTime(),
-          }),
+          const data = await response.json();
+          clearInterval(interval);
+          resolve(data);
+        } catch (err) {
+          console.error('Error while polling route results:', err);
+          clearInterval(interval);
+          resolve(null);
         }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch shadow data: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (!data) {
-        throw new Error('Shadow data response is empty');
-      }
-
-      return data;
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to fetch shadow data');
-    }
-  };
-
-  const fetchRouteData = async (shadeData: any) => {
-    if (!shadeData) {
-      throw new Error('Shade data is required for route calculation');
-    }
-
-    if (!tripPoints.startPoint || !tripPoints.endPoint) {
-      throw new Error(
-        'Origin and destination points are required for route calculation'
-      );
-    }
-
-    try {
-      const routeRequest = {
-        fromLat: tripPoints.startPoint[1],
-        fromLon: tripPoints.startPoint[0],
-        toLat: tripPoints.endPoint[1],
-        toLon: tripPoints.endPoint[0],
-        shadeData: shadeData.shadeProfile,
-        shadePref: parameter,
-        mode: mode,
-      };
-
-      const response = await fetch(
-        `${process.env.EXPO_PUBLIC_ROUTE_SERVER_URL}/api/route`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(routeRequest),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate route: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (!data) {
-        throw new Error('Route data response is empty');
-      }
-      return data;
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Failed to generate route');
-    }
+      }, 1000);
+    });
   };
 
   const calcDistance = (from: [number, number], to: [number, number]) => {
@@ -263,16 +230,15 @@ export default function Nav() {
   const startNavigation = async () => {
     const isValid = await isDistanceValid();
     if (isValid) {
-      setInPreview(false);
-      setState(NAVIGATING);
+      setStartTime(new Date());
+      setState(APP_STATE.NAVIGATING);
     } else {
       showAlert('You seem far away...', 'Save route for later?');
     }
   };
 
   const onBackButtonClick = () => {
-    setInPreview(false);
-    setState(EDITING);
+    setState(APP_STATE.EDITING);
   };
 
   const onGoButtonClick = async () => {
@@ -280,23 +246,21 @@ export default function Nav() {
   };
 
   const onConfirmButtonClick = async () => {
+    setLoading(true);
     switch (state) {
-      case INITIAL:
-        try {
-          const routeData = await getRoute();
+      case APP_STATE.INITIAL:
+        const routeData = await getRoute();
+
+        if (routeData) {
           setRoute(routeData);
-          setInstructions(routeData.instructions);
-          setRouteEdited(true);
-        } catch (error) {
-          console.error(
-            'Failed to get route:',
-            error instanceof Error ? error.message : 'Unknown error'
-          );
         }
+
         break;
-      case EDITING:
+      case APP_STATE.EDITING:
         await startNavigation();
+        break;
     }
+    setLoading(false);
   };
 
   const onEndTripButtonClick = async () => {
@@ -306,8 +270,7 @@ export default function Nav() {
       endPoint: null,
     });
     setRoute(null);
-    setPreviousRoute(null);
-    changeAppState(INITIAL);
+    changeAppState(APP_STATE.INITIAL);
   };
 
   const changeAppState = (newState: APP_STATE) => {
@@ -315,25 +278,28 @@ export default function Nav() {
   };
 
   useEffect(() => {
-    if (state === EDITING) {
-      const getNewRoute = async () => {
-        const newRouteData = await getRoute();
-        if (newRouteData) {
-          setRoute(newRouteData);
-          setInstructions(newRouteData.instructions);
-          setPreviousRoute(null);
-          setRouteEdited(true);
-        }
-      };
-      getNewRoute();
+    if (state !== APP_STATE.EDITING) {
+      return;
     }
-  }, [tripPoints, state, parameter, tripTime, mode]);
 
-  useEffect(() => {
-    if (routeEdited) {
-      setInPreview(true);
+    if (initialEdit) {
+      setInitialEdit(false);
+      return;
     }
-  }, [routeEdited]);
+
+    const getNewRoute = async () => {
+      setLoading(true);
+      const newRouteData = await getRoute();
+
+      if (newRouteData) {
+        setRoute(newRouteData);
+      }
+
+      setLoading(false);
+    };
+
+    getNewRoute();
+  }, [tripPoints, state, parameter, tripTime, mode]);
 
   const onPointChange = (newPoint: [number, number], pointType: POINT_TYPE) => {
     setTripPoints((prev) => ({
@@ -342,24 +308,12 @@ export default function Nav() {
     }));
   };
 
-  useEffect(() => {
-    if (
-      (state === INITIAL && tripPoints.startPoint && tripPoints.endPoint) ||
-      state === EDITING ||
-      state === NAVIGATING
-    ) {
-      setControlPanelOpen(true);
-    } else {
-      setControlPanelOpen(false);
-    }
-  }, [state, tripPoints.startPoint, tripPoints.endPoint]);
-
   const onInfoChange = (
     distanceTraveled: number,
-    speed: number,
+    averageSpeed: number,
     arrivalTime: number
   ) => {
-    setNavInfo({ distanceTraveled, speed, arrivalTime });
+    setNavInfo({ distanceTraveled, averageSpeed, arrivalTime, speed });
   };
 
   const onInputDialogSave = async (name: string) => {
@@ -371,9 +325,19 @@ export default function Nav() {
     setInputDialogVisible(false);
   };
 
+  const onEndTrip = () => {};
+
+  const onHeadingChange = (heading: number) => {
+    setHeading(heading);
+  };
+
+  const onRequestLocation = () => {
+    setUserRequestedLocation(true);
+  };
+
   return (
     <View style={styles.container}>
-      {state === INITIAL && !inPreview && (
+      {state === APP_STATE.INITIAL && !inPreview && (
         <View style={styles.promptContainer}>
           <Text style={styles.promptText}>
             {!tripPoints.startPoint
@@ -385,16 +349,17 @@ export default function Nav() {
         </View>
       )}
 
-      {state === EDITING && !inPreview && (
+      {state === APP_STATE.EDITING && !inPreview && (
         <View style={styles.promptContainer}>
           <Text style={styles.promptText}>Drag points or change settings</Text>
         </View>
       )}
 
       <View style={styles.locationButtonContainer}>
-        <LocationButton setMapCenter={setMapCenter} />
+        <LocationButton onRequestLocation={onRequestLocation} />
         <IconButton
           onPress={() => router.push('/')}
+          style={{ backgroundColor: 'white' }}
           icon={() => <FontAwesome5 name="home" size={24} />}
         />
       </View>
@@ -411,7 +376,7 @@ export default function Nav() {
         />
       </View>
 
-      {state === NAVIGATING && route && instructions && (
+      {state === APP_STATE.NAVIGATING && route && instructions && startTime && (
         <View
           style={{
             position: 'absolute',
@@ -419,14 +384,18 @@ export default function Nav() {
             left: 0,
             right: 0,
             zIndex: 10,
-            backgroundColor: '#219EBC',
+            backgroundColor: '#3fa7d6',
             borderRadius: 16,
+            marginHorizontal: 12,
           }}
         >
           <NavInstructions
             instructions={instructions}
-            totalDistance={route.totalDistance}
+            totalDistance={route.distance}
+            startTime={startTime}
             onInfoChange={onInfoChange}
+            onHeadingChange={onHeadingChange}
+            onEndTrip={onEndTrip}
           />
         </View>
       )}
@@ -435,6 +404,7 @@ export default function Nav() {
         route={route ?? undefined}
         center={mapCenter}
         points={tripPoints}
+        heading={heading}
         onPointChange={onPointChange}
       />
 
@@ -445,6 +415,8 @@ export default function Nav() {
         onSave={onInputDialogSave}
         onClose={onInputDialogClose}
       />
+
+      {loading && <Loader loading={loading} />}
     </View>
   );
 }
@@ -467,7 +439,7 @@ const styles = StyleSheet.create({
     right: 0,
     marginHorizontal: 18,
     paddingVertical: 24,
-    backgroundColor: '#219EBC',
+    backgroundColor: '#3fa7d6',
     borderRadius: 16,
     zIndex: 1,
   },
@@ -479,10 +451,9 @@ const styles = StyleSheet.create({
   },
   controlPanelContainer: {
     position: 'absolute',
-    bottom: '5%',
+    bottom: 0,
     left: 0,
     right: 0,
-    marginHorizontal: 18,
     zIndex: 1,
   },
 });

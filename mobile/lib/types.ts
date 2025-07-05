@@ -1,18 +1,59 @@
 export type Route = {
-  edgeDetails: Array<{
-    points: number[];
-    shadeCoverage: number;
-    distance: number;
-  }>;
   path: [number, number][];
-  totalDistance: number;
+  details: {
+    points: [number, number][];
+    coverage: number;
+    distance: number;
+  }[];
+  distance: number;
+  weight: number;
+  weightedAverageCoverage: number;
+  instructions: Instruction[];
 };
 
-export type APP_STATE = 'INITIAL' | 'NAVIGATING' | 'EDITING';
+export const Mode = {
+  RUNNING: 'running',
+  WALKING: 'walking',
+  BIKING: 'biking',
+} as const;
 
-export const INITIAL = 'INITIAL';
-export const NAVIGATING = 'NAVIGATING';
-export const EDITING = 'EDITING';
+export type Mode = (typeof Mode)[keyof typeof Mode];
+
+export type SavedRoute = {
+  name: string;
+  start: [number, number];
+  end: [number, number];
+  path: { longitude: number; latitude: number }[];
+  details: {
+    points: { longitude: number; latitude: number }[];
+    coverage: number;
+    distance: number;
+  }[];
+  city: string;
+  mode: Mode;
+  parameter: number;
+  timeStamp: number;
+  distance: number;
+  weightedAverageCoverage: number;
+  createdAt: string;
+};
+
+export type Instruction = {
+  name: string;
+  turnDescription: string;
+  distance: number;
+  time: number;
+  interval: [number, number];
+};
+
+export type City = { name: string; coordinates: [number, number] };
+
+export enum APP_STATE {
+  STARTING = 'STARTING',
+  INITIAL = 'INITIAL',
+  NAVIGATING = 'NAVIGATING',
+  EDITING = 'EDITING',
+}
 
 export type POINT_TYPE = 'START_POINT' | 'END_POINT';
 
