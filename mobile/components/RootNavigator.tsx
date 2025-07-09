@@ -1,19 +1,13 @@
-import { Stack } from 'expo-router';
-import { useAuth } from '@/hooks/useAuth/useAuth';
+import { Stack, useRouter } from 'expo-router';
 
 export default function RootNavigator() {
-  const { user } = useAuth();
-
   return (
     <Stack
       screenOptions={{
         headerShown: false,
       }}
     >
-      <Stack.Protected>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="nav" />
-      </Stack.Protected>
+      <Stack.Screen name="auth" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }

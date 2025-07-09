@@ -1,9 +1,21 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import { IconButton } from 'react-native-paper';
+import { useAuth } from '@/hooks/useAuth/useAuth';
+import { Text } from 'react-native';
 
 export default function Layout() {
+  const { user } = useAuth();
+
+  if (user === undefined) {
+    return <Text>Loading...</Text>;
+  }
+
+  if (user === null) {
+    return <Redirect href="/auth" />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -29,17 +41,6 @@ export default function Layout() {
             color: '#3fa7d6',
           },
           headerTitle: 'Routes',
-          headerLeft: () => (
-            <IconButton icon="arrow-left" onPress={() => router.back()} />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="route-details"
-        options={{
-          href: null,
-          headerTitle: 'Route Details',
           headerLeft: () => (
             <IconButton icon="arrow-left" onPress={() => router.back()} />
           ),

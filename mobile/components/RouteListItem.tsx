@@ -1,48 +1,60 @@
 import { View, StyleSheet, Image, Text } from 'react-native';
 import { format } from 'date-fns';
-import { Button, IconButton } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { IconButton } from 'react-native-paper';
 import { SavedRoute } from '@/lib/types';
 
 type RouteListItemProps = {
   route: SavedRoute;
+  onPress: () => void;
 };
 
-export default function RouteListItem({ route }: RouteListItemProps) {
-  const router = useRouter();
+const COLORS = {
+  HIGH: '#51cf66',
+  MEDIUM: '#fcc419',
+  LOW: '#ff6b6b',
+};
 
-  const onRoutePress = () => {
-    router.push({
-      pathname: '/(tabs)/route-details',
-      params: {
-        routeId: route.id,
-      },
-    });
-  };
-
+export default function RouteListItem({ route, onPress }: RouteListItemProps) {
   return (
     <View style={styles.container}>
-      <Image
-        source={require('@/assets/images/new-york.jpg')}
-        style={styles.image}
-      />
       <View style={styles.infoContainer}>
         <Text style={{ fontSize: 12, fontWeight: 600 }}>
-          {format(new Date(route.tripTime), 'MMM d HH:mm')} {route.city}
+          {format(new Date(route.timeStamp * 1000), 'MMM d HH:mm')}{' '}
+          {route.city.name}
         </Text>
-        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
-          {(route.totalDistance / 1000).toFixed(2)} km
-        </Text>
+
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: 900 }}>
+            {(route.distance / 1000).toFixed(2)} km
+          </Text>
+
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: 900,
+              color:
+                route.weightedAverageCoverage > 0.66
+                  ? COLORS.HIGH
+                  : route.weightedAverageCoverage > 0.33
+                    ? COLORS.MEDIUM
+                    : COLORS.LOW,
+            }}
+          >
+            {(route.weightedAverageCoverage * 100).toFixed(2)}%
+          </Text>
+        </View>
+
         <Text style={{ fontSize: 12 }}>{route.mode}</Text>
       </View>
+
       <View style={styles.iconContainer}>
-        {/* <IconButton
-          onPress={onRoutePress}
-          icon={() => (
-            <FontAwesome5 name="arrow-circle-right" size={22} color="#023047" />
-          )}
-        /> */}
-        <Button mode="contained" onPress={onRoutePress} icon="arrow-right" />
+        <IconButton mode="contained" onPress={onPress} icon="arrow-right" />
       </View>
     </View>
   );
@@ -50,19 +62,13 @@ export default function RouteListItem({ route }: RouteListItemProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     flexDirection: 'row',
     columnGap: 12,
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 22,
-    borderRadius: 32,
-    backgroundColor: 'white',
-  },
-  image: {
-    width: 100,
-    height: 100,
+    paddingVertical: 20,
     borderRadius: 12,
+    backgroundColor: 'white',
   },
   infoContainer: {
     flexGrow: 1,

@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { Image } from 'react-native';
 
 type MapProps = {
-  route?: Route;
+  route: Route | null;
   center: [number, number] | undefined;
   points: TripPoints;
   heading: number;

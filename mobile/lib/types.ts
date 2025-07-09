@@ -6,9 +6,13 @@ export type Route = {
     distance: number;
   }[];
   distance: number;
-  weight: number;
   weightedAverageCoverage: number;
   instructions: Instruction[];
+};
+
+export type RouteToResume = Route & {
+  start: [number, number];
+  end: [number, number];
 };
 
 export const Mode = {
@@ -29,7 +33,8 @@ export type SavedRoute = {
     coverage: number;
     distance: number;
   }[];
-  city: string;
+  instructions: Instruction[];
+  city: City;
   mode: Mode;
   parameter: number;
   timeStamp: number;
@@ -49,10 +54,10 @@ export type Instruction = {
 export type City = { name: string; coordinates: [number, number] };
 
 export enum APP_STATE {
-  STARTING = 'STARTING',
   INITIAL = 'INITIAL',
-  NAVIGATING = 'NAVIGATING',
   EDITING = 'EDITING',
+  NAVIGATING = 'NAVIGATING',
+  RESUMING = 'RESUMING',
 }
 
 export type POINT_TYPE = 'START_POINT' | 'END_POINT';
@@ -63,4 +68,18 @@ export const END_POINT = 'END_POINT';
 export type TripPoints = {
   startPoint: [number, number] | null;
   endPoint: [number, number] | null;
+};
+
+export type InitRoutingParams = {
+  fromLat: number;
+  fromLon: number;
+  toLat: number;
+  toLon: number;
+  mode: Mode;
+  timeStamp: number;
+  parameter: number;
+};
+
+export type InitRoutingResponse = {
+  jobId: string;
 };

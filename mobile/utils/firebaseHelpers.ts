@@ -1,14 +1,14 @@
 import { db } from '@/firebaseConfig';
 import {
-  collection,
   addDoc,
-  setDoc,
-  doc,
+  collection,
   deleteDoc,
-  getDocs,
-  getDoc,
-  WithFieldValue,
+  doc,
   DocumentData,
+  getDoc,
+  getDocs,
+  setDoc,
+  WithFieldValue,
 } from 'firebase/firestore';
 
 export const addDocument = async <T extends WithFieldValue<DocumentData>>(
@@ -69,15 +69,15 @@ export const getDocuments = async <T>(
   try {
     const collectionRef = collection(db, collectionName);
     const snapshot = await getDocs(collectionRef);
-    const docs = snapshot.docs.map((doc) => {
+
+    return snapshot.docs.map((doc) => {
       return {
         id: doc.id,
         ...doc.data(),
       };
-    });
-    return docs;
+    }) as (T & { id: string })[];
   } catch (err) {
-    return null;
+    return [];
   }
 };
 

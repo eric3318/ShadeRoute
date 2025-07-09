@@ -1,5 +1,5 @@
 import { Alert, StyleSheet, Text, View } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import LocationButton from '@/components/LocationButton';
 import Map from '@/components/Map';
 import {
@@ -19,42 +19,63 @@ import { router } from 'expo-router';
 import NavInstructions from '@/components/NavInstructions';
 import * as turf from '@turf/turf';
 import { useLocation } from '@/hooks/useLocation/useLocation';
-import { addDocument } from '@/utils/firebaseHelpers';
 import InputDialog from '@/components/InputDialog';
 import Loader from '@/components/Loader';
 import { useAuth } from '@/hooks/useAuth/useAuth';
+import { initRouting, pollResult } from '@/utils/helpers';
+import { useRoute } from '@/hooks/useRoute/useRoute';
+import { addDocument } from '@/utils/firebaseHelpers';
 
 const CLOSE_PROXIMITY_DISTANCE = 500;
 
 export default function Nav() {
   const { user } = useAuth();
+  const { route: routeToResume } = useRoute();
+
   const { state, setState } = useAppState();
   const { city, mode, parameter, date: tripTime } = useOptions();
   const { location, requestLocation } = useLocation();
+  const [tripPoints, setTripPoints] = useState<TripPoints>({
+    startPoint: routeToResume?.start ?? null,
+    endPoint: routeToResume?.end ?? null,
+  });
 
   const [lastUsedTripTime, setLastUsedTripTime] = useState<number | null>(null);
-  const [tripPoints, setTripPoints] = useState<TripPoints>({
-    startPoint: null,
-    endPoint: null,
-  });
   const [route, setRoute] = useState<Route | null>(null);
-  const instructions = route?.instructions ?? [];
+
+  const instructions =
+    state === APP_STATE.RESUMING && routeToResume
+      ? routeToResume.instructions
+      : (route?.instructions ?? []);
+
   const [userRequestedLocation, setUserRequestedLocation] =
     useState<boolean>(false);
+  const initialEdit = useRef(true);
+  const [routeChanged, setRouteChanged] = useState<boolean>(false);
 
-  const mapCenter = userRequestedLocation ? location : city?.coordinates;
+  const mapCenter = userRequestedLocation
+    ? location || undefined
+    : city?.coordinates;
 
   const controlPanelOpen =
     (state === APP_STATE.INITIAL &&
       !!tripPoints.startPoint &&
       !!tripPoints.endPoint) ||
     state === APP_STATE.EDITING ||
-    state === APP_STATE.NAVIGATING;
+    state === APP_STATE.NAVIGATING ||
+    state === APP_STATE.RESUMING;
 
   const inPreview =
-    (state === APP_STATE.INITIAL || state === APP_STATE.EDITING) && !!route;
+    ((state === APP_STATE.INITIAL || state === APP_STATE.EDITING) &&
+      !!route &&
+      routeChanged) ||
+    state === APP_STATE.RESUMING;
 
-  const [imageUri, setImageUri] = useState<string>('');
+  const routeToUse =
+    state === APP_STATE.RESUMING && routeToResume
+      ? routeToResume
+      : (route ?? routeToResume);
+
   const [navInfo, setNavInfo] = useState<{
     distanceTraveled: number;
     averageSpeed: number;
@@ -64,11 +85,43 @@ export default function Nav() {
   const [heading, setHeading] = useState<number>(0);
   const [inputDialogVisible, setInputDialogVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [initialEdit, setInitialEdit] = useState<boolean>(true);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [speed, setSpeed] = useState<number>(0);
+  const attemptingSignin = useRef<boolean>(false);
 
-  const saveRoute = async (name?: string) => {
+  const handleConfirmSaveRoute = () => {
+    if (!user) {
+      attemptingSignin.current = true;
+      router.push('/auth');
+    } else {
+      setInputDialogVisible(true);
+    }
+  };
+
+  useEffect(() => {
+    if (attemptingSignin.current && user) {
+      setInputDialogVisible(true);
+      attemptingSignin.current = false;
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (routeToResume) {
+      setTripPoints({
+        startPoint: routeToResume.start,
+        endPoint: routeToResume.end,
+      });
+    }
+  }, [routeToResume]);
+
+  const saveRoute = async (
+    routeData: SavedRoute,
+    path: string
+  ): Promise<void> => {
+    await addDocument(path, routeData);
+  };
+
+  const buildRouteData = (name?: string): SavedRoute => {
     if (
       !tripPoints.startPoint ||
       !tripPoints.endPoint ||
@@ -78,7 +131,7 @@ export default function Nav() {
       !lastUsedTripTime ||
       !user
     ) {
-      return;
+      throw new Error('Missing required data for building saved route');
     }
 
     const path = route.path.map((point) => {
@@ -102,118 +155,23 @@ export default function Nav() {
       end: tripPoints.endPoint,
       path,
       details,
-      city: city.name,
+      city,
       mode,
       parameter,
+      instructions,
       timeStamp: lastUsedTripTime,
       distance: route.distance,
       weightedAverageCoverage: route.weightedAverageCoverage,
       createdAt: new Date().toISOString(),
     };
 
-    try {
-      const docId = await addDocument(`users/${user.uid}/routes`, routeData);
-
-      if (!docId) {
-        Alert.alert('Failed to save route', 'Please try again');
-        return;
-      }
-
-      console.log('Route saved successfully');
-    } catch (err) {
-      Alert.alert('Failed to save route', 'Please try again');
-    }
-  };
-
-  const showAlert = (title: string, message: string) => {
-    Alert.alert(title, message, [
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-      { text: 'OK', onPress: () => setInputDialogVisible(true) },
-    ]);
-  };
-
-  const getRoute = async () => {
-    if (!tripPoints.startPoint || !tripPoints.endPoint) {
-      throw new Error('Origin and destination points are required');
-    }
-
-    const payload = {
-      fromLat: tripPoints.startPoint[1],
-      fromLon: tripPoints.startPoint[0],
-      toLat: tripPoints.endPoint[1],
-      toLon: tripPoints.endPoint[0],
-      mode,
-      parameter,
-      timeStamp: Math.floor((tripTime ?? new Date()).getTime() / 1000),
-    };
-
-    try {
-      const response = await fetch(
-        // `${process.env.EXPO_PUBLIC_SERVER_URL}/api/route`,
-        // 'https://api.shadepath.com/api/route',
-        'http://localhost:8080/api/route',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Unsuccessful response from server');
-      }
-
-      const { jobId } = await response.json();
-
-      const route = await pollForResult(jobId);
-
-      return route;
-    } catch (error) {
-      console.error('Error while fetching route:', error);
-      return null;
-    }
-  };
-
-  const pollForResult = (jobId: string): Promise<Route | null> => {
-    return new Promise((resolve) => {
-      const interval = setInterval(async () => {
-        try {
-          const response = await fetch(
-            // `${process.env.EXPO_PUBLIC_SERVER_URL}/api/results?jobId=${jobId}`
-            // `https://api.shadepath.com/api/results?jobId=${jobId}`
-            `http://localhost:8080/api/results?jobId=${jobId}`
-          );
-
-          if (!response.ok) {
-            throw new Error('Unsuccessful response from server');
-          }
-
-          if (response.status === 204) {
-            return;
-          }
-
-          const data = await response.json();
-          clearInterval(interval);
-          resolve(data);
-        } catch (err) {
-          console.error('Error while polling route results:', err);
-          clearInterval(interval);
-          resolve(null);
-        }
-      }, 1000);
-    });
+    return routeData;
   };
 
   const calcDistance = (from: [number, number], to: [number, number]) => {
     const fromPoint = turf.point([from[0], from[1]]);
     const toPoint = turf.point([to[0], to[1]]);
-    const distance = turf.distance(fromPoint, toPoint, { units: 'meters' });
-    return distance;
+    return turf.distance(fromPoint, toPoint, { units: 'meters' });
   };
 
   const isDistanceValid = async () => {
@@ -229,15 +187,72 @@ export default function Nav() {
 
   const startNavigation = async () => {
     const isValid = await isDistanceValid();
+
     if (isValid) {
       setStartTime(new Date());
       setState(APP_STATE.NAVIGATING);
+    } else if (state !== APP_STATE.RESUMING) {
+      Alert.alert('You seem far away...', 'Save route for later?', [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        { text: 'OK', onPress: handleConfirmSaveRoute },
+      ]);
     } else {
-      showAlert('You seem far away...', 'Save route for later?');
+      Alert.alert('You seem far away...', 'Go back and try a closer route.', [
+        {
+          text: 'Dismiss',
+          style: 'cancel',
+        },
+      ]);
+    }
+  };
+
+  const getRoute = async () => {
+    try {
+      if (!tripPoints.startPoint || !tripPoints.endPoint) {
+        throw new Error('Missing start or end point');
+      }
+
+      setLoading(true);
+
+      const timeStamp = Math.floor((tripTime ?? new Date()).getTime() / 1000);
+
+      const payload = {
+        fromLat: tripPoints.startPoint[1],
+        fromLon: tripPoints.startPoint[0],
+        toLat: tripPoints.endPoint[1],
+        toLon: tripPoints.endPoint[0],
+        mode,
+        parameter,
+        timeStamp,
+      };
+
+      const initResult = await initRouting(payload);
+
+      if (!initResult) {
+        throw new Error('Failed to initialize routing');
+      }
+
+      const route = await pollResult(initResult.jobId);
+
+      if (!route) {
+        throw new Error('Failed to poll routing result');
+      }
+
+      setLastUsedTripTime(timeStamp);
+      setRoute(route);
+      setRouteChanged(true);
+    } catch (error) {
+      console.error('Error getting route:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const onBackButtonClick = () => {
+    setRouteChanged(false);
     setState(APP_STATE.EDITING);
   };
 
@@ -246,35 +261,24 @@ export default function Nav() {
   };
 
   const onConfirmButtonClick = async () => {
-    setLoading(true);
     switch (state) {
       case APP_STATE.INITIAL:
-        const routeData = await getRoute();
-
-        if (routeData) {
-          setRoute(routeData);
-        }
-
+        await getRoute();
         break;
       case APP_STATE.EDITING:
         await startNavigation();
         break;
     }
-    setLoading(false);
   };
 
   const onEndTripButtonClick = async () => {
-    await saveRoute();
     setTripPoints({
       startPoint: null,
       endPoint: null,
     });
     setRoute(null);
-    changeAppState(APP_STATE.INITIAL);
-  };
-
-  const changeAppState = (newState: APP_STATE) => {
-    setState(newState);
+    setRouteChanged(false);
+    setState(APP_STATE.INITIAL);
   };
 
   useEffect(() => {
@@ -282,23 +286,14 @@ export default function Nav() {
       return;
     }
 
-    if (initialEdit) {
-      setInitialEdit(false);
+    if (initialEdit.current) {
+      initialEdit.current = false;
       return;
     }
 
-    const getNewRoute = async () => {
-      setLoading(true);
-      const newRouteData = await getRoute();
-
-      if (newRouteData) {
-        setRoute(newRouteData);
-      }
-
-      setLoading(false);
-    };
-
-    getNewRoute();
+    (async () => {
+      await getRoute();
+    })();
   }, [tripPoints, state, parameter, tripTime, mode]);
 
   const onPointChange = (newPoint: [number, number], pointType: POINT_TYPE) => {
@@ -311,14 +306,26 @@ export default function Nav() {
   const onInfoChange = (
     distanceTraveled: number,
     averageSpeed: number,
-    arrivalTime: number
+    arrivalTime: number,
+    currentSpeed: number
   ) => {
-    setNavInfo({ distanceTraveled, averageSpeed, arrivalTime, speed });
+    setNavInfo({
+      distanceTraveled,
+      averageSpeed,
+      arrivalTime,
+      speed: currentSpeed,
+    });
   };
 
   const onInputDialogSave = async (name: string) => {
-    await saveRoute(name);
-    onInputDialogClose();
+    try {
+      const routeData = buildRouteData(name);
+      await saveRoute(routeData, `users/${user?.uid}/routes`);
+      onInputDialogClose();
+    } catch (e) {
+      console.log(e);
+      Alert.alert('Failed to save route', 'Please try again');
+    }
   };
 
   const onInputDialogClose = () => {
@@ -391,6 +398,7 @@ export default function Nav() {
         >
           <NavInstructions
             instructions={instructions}
+            routePath={route.path}
             totalDistance={route.distance}
             startTime={startTime}
             onInfoChange={onInfoChange}
@@ -401,7 +409,7 @@ export default function Nav() {
       )}
 
       <Map
-        route={route ?? undefined}
+        route={routeToUse}
         center={mapCenter}
         points={tripPoints}
         heading={heading}

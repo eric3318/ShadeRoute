@@ -1,24 +1,33 @@
 import { View, StyleSheet, FlatList } from 'react-native';
-import { Route } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import RouteListItem from '@/components/RouteListItem';
-import { getDocuments } from '@/utils/firebaseHelpers';
 import DropdownPicker from '@/components/DropdownPicker';
-import { Button, IconButton } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { Button } from 'react-native-paper';
 import { SavedRoute } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth/useAuth';
+import { getDocuments } from '@/utils/firebaseHelpers';
+import { useRoute } from '@/hooks/useRoute/useRoute';
+import { useRouter } from 'expo-router';
 
-const sortByOptions = ['Trip Date', 'Add Date', 'Distance', 'Name'];
+const sortByOptions = [
+  'Date Created',
+  'Name',
+  'Distance',
+  'Shade',
+  'Trip Date',
+];
 const cityFilterOptions = ['All', 'Vancouver', 'Toronto', 'New York'];
 const modeFilterOptions = ['All', 'walking', 'running', 'biking'];
 
+type SavedRouteWithId = SavedRoute & { id: string };
+
 export default function RoutesSaved() {
+  const { user, logout } = useAuth();
+  const { setRoute } = useRoute();
   const router = useRouter();
-  const { user } = useAuth();
-  const [routes, setRoutes] = useState<SavedRoute[]>([]);
-  const [filteredRoutes, setFilteredRoutes] = useState<SavedRoute[]>([]);
-  const [sortBy, setSortBy] = useState<string>(sortByOptions[0]);
+  const [routes, setRoutes] = useState<SavedRouteWithId[]>([]);
+  const [filteredRoutes, setFilteredRoutes] = useState<SavedRouteWithId[]>([]);
+  const [sortBy, setSortBy] = useState<string>('Date Created');
   const [cityFilter, setCityFilter] = useState<string>('All');
   const [modeFilter, setModeFilter] = useState<string>('All');
   const [dropdownStatus, setDropdownStatus] = useState<{
@@ -40,38 +49,11 @@ export default function RoutesSaved() {
       return;
     }
 
-    const data = await getDocuments<SavedRoute>(`users/${user.uid}/routes`);
+    const savedRoutes = await getDocuments<SavedRoute>(
+      `users/${user.uid}/routes`
+    );
 
-    if (!data) {
-      console.error('No data found');
-      return;
-    }
-
-    const routesData = data.map((route) => {
-      const path = route.path.map(
-        (point: { longitude: number; latitude: number }) => {
-          return [point.longitude, point.latitude];
-        }
-      );
-
-      const edgeDetails = route.details;
-
-      return {
-        id: route.id,
-        name: route.name || 'Untitled',
-        edgeDetails,
-        path,
-        city: route.city,
-        mode: route.mode,
-        parameter: route.parameter,
-        tripTime: route.tripTime,
-        totalDistance: route.distance,
-        createdAt: route.createdAt,
-      };
-    });
-
-    setRoutes(routesData);
-    setFilteredRoutes(routesData);
+    setRoutes(savedRoutes);
   };
 
   const onSortByChange = (value: string) => {
@@ -92,88 +74,80 @@ export default function RoutesSaved() {
   };
 
   useEffect(() => {
-    let currRoutes = routes;
-    if (cityFilter !== 'All') {
-      currRoutes = currRoutes.filter((route) => route.city === cityFilter);
-    }
-    if (modeFilter !== 'All') {
-      currRoutes = currRoutes.filter((route) => route.mode === modeFilter);
-    }
-    setFilteredRoutes(currRoutes);
-  }, [cityFilter, modeFilter]);
+    const newRoutes = applyFilters();
 
-  useEffect(() => {
-    if (sortBy === 'Trip Date') {
-      setFilteredRoutes((prev) =>
-        prev.sort(
-          (a, b) =>
-            new Date(a.tripTime).getTime() - new Date(b.tripTime).getTime()
-        )
-      );
-    } else if (sortBy === 'Add Date') {
-      setFilteredRoutes((prev) =>
-        prev.sort(
+    setFilteredRoutes(newRoutes);
+  }, [sortBy, cityFilter, modeFilter, routes]);
+
+  const applyFilters = (): SavedRouteWithId[] => {
+    let newRoutes = [...routes];
+
+    if (cityFilter !== 'All') {
+      newRoutes = newRoutes.filter((route) => route.city.name === cityFilter);
+    }
+
+    if (modeFilter !== 'All') {
+      newRoutes = newRoutes.filter((route) => route.mode === modeFilter);
+    }
+
+    switch (sortBy) {
+      case 'Trip Date':
+        newRoutes.sort((a, b) => a.timeStamp - b.timeStamp);
+        break;
+      case 'Date Created':
+        newRoutes.sort(
           (a, b) =>
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-        )
-      );
-    } else if (sortBy === 'Distance') {
-      setFilteredRoutes((prev) =>
-        prev.sort((a, b) => a.totalDistance - b.totalDistance)
-      );
-    } else if (sortBy === 'Name') {
-      setFilteredRoutes((prev) =>
-        prev.sort((a, b) => a.city.localeCompare(b.city))
-      );
+        );
+        break;
+      case 'Distance':
+        newRoutes.sort((a, b) => a.distance - b.distance);
+        break;
+      case 'Name':
+        newRoutes.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'Shade':
+        newRoutes.sort(
+          (a, b) => a.weightedAverageCoverage - b.weightedAverageCoverage
+        );
+        break;
+      default:
+        break;
     }
-  }, [sortBy]);
 
-  const onVisibilityChange = (option: string, newStatus: boolean) => {
+    return newRoutes;
+  };
+
+  const onVisibilityChange = (
+    option: keyof typeof dropdownStatus,
+    visible: boolean
+  ) => {
     setDropdownStatus((prev) => {
-      const newState = { ...prev };
-      newState[option] = newStatus;
-      if (newStatus === true) {
+      const newDropdownStatus = { ...prev };
+      newDropdownStatus[option] = visible;
+
+      if (visible) {
         for (const val in prev) {
           if (val !== option) {
-            newState[val] = false;
+            newDropdownStatus[val as keyof typeof dropdownStatus] = false;
           }
         }
       }
-      return newState;
+
+      return newDropdownStatus;
     });
   };
 
-  const onRoutePress = (routeId: string) => {
-    router.push({
-      pathname: '/(tabs)/route-details',
-      params: {
-        routeId,
-      },
-    });
+  const onRoutePress = (route: SavedRoute) => {
+    setRoute(route);
+    router.dismissAll();
+    router.replace('/nav');
   };
-
-  // const getSavedRoutes = async () => {
-  //   try {
-  //     const keys = await AsyncStorage.getAllKeys();
-  //     const routeKeys = keys.filter((key) => key.startsWith('route:'));
-  //     const savedRoutes: SavedRoute[] = [];
-  //     for (const key of routeKeys) {
-  //       const routeData = await AsyncStorage.getItem(key);
-  //       if (!routeData) {
-  //         console.error('No data found for route: ', key);
-  //         continue;
-  //       }
-  //       const routeObj = JSON.parse(routeData);
-  //       savedRoutes.push(routeObj);
-  //     }
-  //     setRoutes(savedRoutes);
-  //   } catch (err) {
-  //     console.error(err);
-  //   }
-  // };
 
   return (
     <View style={styles.container}>
+      <Button onPress={logout}>Test</Button>
+
       <View style={styles.filterContainer}>
         <DropdownPicker
           options={sortByOptions}
@@ -186,6 +160,7 @@ export default function RoutesSaved() {
             onVisibilityChange('sortBy', newStatus)
           }
         />
+
         <DropdownPicker
           options={cityFilterOptions}
           value={cityFilter}
@@ -198,6 +173,7 @@ export default function RoutesSaved() {
             onVisibilityChange('city', newStatus)
           }
         />
+
         <DropdownPicker
           options={modeFilterOptions}
           value={modeFilter}
@@ -217,7 +193,7 @@ export default function RoutesSaved() {
         data={filteredRoutes}
         renderItem={({ item }) => (
           <Button
-            onPress={() => onRoutePress(item.id)}
+            onPress={() => onRoutePress(item)}
             theme={{
               colors: {
                 primary: '#8ecae6',
@@ -231,7 +207,7 @@ export default function RoutesSaved() {
               borderRadius: 32,
             }}
           >
-            <RouteListItem route={item} />
+            <RouteListItem route={item} onPress={() => onRoutePress(item)} />
           </Button>
         )}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}

@@ -1,6 +1,6 @@
 import { getDocuments } from '@/utils/firebaseHelpers';
 import { createContext, ReactNode, useState, useEffect } from 'react';
-import { City, Mode } from '@/lib/types';
+import { City, Mode, TripPoints } from '@/lib/types';
 
 type Options = {
   city: City | null;
@@ -39,19 +39,14 @@ const OptionsProvider = ({ children }: OptionsProviderProps) => {
 
   useEffect(() => {
     async function fetchCityOptions() {
-      const cityDocs = await getDocuments('cities');
+      const cityDocs = await getDocuments<City>('cities');
 
       if (!cityDocs) {
         return;
       }
 
-      const cityOptions = cityDocs.map((doc) => ({
-        name: doc.name,
-        coordinates: doc.coordinates,
-      }));
-
-      setCityOptions(cityOptions);
-      setCity(cityOptions[0]);
+      setCityOptions(cityDocs);
+      setCity(cityDocs[0]);
     }
 
     fetchCityOptions();
