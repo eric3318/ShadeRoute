@@ -15,9 +15,13 @@ type InitRoutingResponse = {
   jobId: string;
 };
 
+const SERVER_URL = import.meta.env.MODE === "development"
+  ? "http://localhost:8080"
+  : import.meta.env.VITE_SERVER_BASE_URL;
+
 export async function initRouting(payload: InitRoutingParams): Promise<InitRoutingResponse | null> {
   try {
-    const response = await fetch(`${import.meta.env.VITE_SERVER_BASE_URL}/route`, {
+    const response = await fetch(`${SERVER_URL}/api/route`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -42,7 +46,7 @@ export async function fetchRoute(jobId: string): Promise<Route | null> {
   return new Promise((resolve) => {
     const interval = setInterval(async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_SERVER_BASE_URL}/results?jobId=${jobId}`);
+        const response = await fetch(`${SERVER_URL}/api/results?jobId=${jobId}`);
 
         if (!response.ok) {
           throw new Error('Unsuccessful response from server');
