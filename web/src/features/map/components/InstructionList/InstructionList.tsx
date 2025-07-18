@@ -1,6 +1,6 @@
 import { Group, ScrollArea, Stack, Text, UnstyledButton } from '@mantine/core';
 import type { Instruction } from '../../types';
-import { IconArrowRight, IconX } from '@tabler/icons-react';
+import { IconX } from '@tabler/icons-react';
 
 type Props = {
   opened: boolean;
@@ -21,7 +21,7 @@ export default function InstructionList({ opened, onClose, instructions }: Props
         <Stack>
           {instructions.map((instruction, index) => (
             <Group key={index}>
-              <IconArrowRight size={48} />
+              {/* <IconArrowRight size={48} /> */}
 
               <Stack gap={0}>
                 <Text fw={500}>{instruction.turnDescription}</Text>

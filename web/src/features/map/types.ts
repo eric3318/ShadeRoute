@@ -27,15 +27,8 @@ export type City = {
   country: string;
 };
 
-export type RouteSettings = {
-  date: string;
-  time: string;
-  shade: number;
-};
-
 export type SavedRoute = {
   name: string;
-  userId: string;
   start: [number, number];
   end: [number, number];
   path: { longitude: number; latitude: number }[];
@@ -44,9 +37,10 @@ export type SavedRoute = {
     coverage: number;
     distance: number;
   }[];
-  city: string;
+  instructions: Instruction[];
+  city: City;
   mode: Mode;
-  settings: RouteSettings;
+  parameter: number;
   timeStamp: number;
   distance: number;
   weightedAverageCoverage: number;

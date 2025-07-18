@@ -14,7 +14,7 @@ export default function SecondaryBar({ children, opened, close }: Props) {
       styles={{
         root: {
           position: 'absolute',
-          left: '100px',
+          left: '140px',
           zIndex: 999,
         },
         content: {

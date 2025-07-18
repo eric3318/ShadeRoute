@@ -40,10 +40,6 @@ export default function SettingsContent({ date, time, shade, onDateChange, onTim
 
         <ShadeSlider value={shade} onChange={onShadeChange} />
       </Stack>
-
-      {/* <Button size="md" radius="md" color="#0466C8">
-        Apply
-      </Button> */}
       <div />
     </Stack>
   );

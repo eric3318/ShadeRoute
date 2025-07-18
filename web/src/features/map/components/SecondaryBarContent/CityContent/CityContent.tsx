@@ -3,8 +3,8 @@ import type { City } from '../../../types';
 
 type Props = {
   options: City[];
-  city: string;
-  onCityChange: (city: string) => void;
+  city: City | null;
+  onCityChange: (city: City) => void;
 };
 
 export default function CityContent({ options, city, onCityChange }: Props) {
@@ -19,11 +19,11 @@ export default function CityContent({ options, city, onCityChange }: Props) {
       {options.map((option) => (
         <Button
           key={option.name}
-          onClick={() => onCityChange(option.name)}
+          onClick={() => onCityChange(option)}
           variant="subtle"
           size="md"
           radius="md"
-          c={city === option.name ? '#EE6352' : 'white'}
+          c={city?.name === option.name ? '#EE6352' : 'white'}
         >
           {option.name}, {option.country}
         </Button>

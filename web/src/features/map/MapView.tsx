@@ -41,9 +41,10 @@ export default function MapView() {
   const [instructionListOpened, setInstructionListOpened] = useState<boolean>(false);
   const [saveRouteModalOpened, { close: closeSaveRouteModal, open: openSaveRouteModal }] = useDisclosure(false);
 
+  const [cityOptions, setCityOptions] = useState<City[]>([]);
   const [start, setStart] = useState<{ lat: number; lng: number } | null>(null);
   const [end, setEnd] = useState<{ lat: number; lng: number } | null>(null);
-  const [city, setCity] = useState<string>('Vancouver');
+  const [city, setCity] = useState<City | null>(null);
   const [mode, setMode] = useState<Mode>(Mode.RUNNING);
   const [settings, setSettings] = useState<{ date: string; time: string; shade: number }>({
     date: '',
@@ -54,7 +55,6 @@ export default function MapView() {
 
   const [route, setRoute] = useState<Route | null>(null);
   const [routeGeoJson, setRouteGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
-  const [cityOptions, setCityOptions] = useState<City[]>([]);
 
   const mapRef = useRef<MapRef>(null);
 
@@ -73,12 +73,19 @@ export default function MapView() {
       }));
 
       setCityOptions(options);
+      setCity(options[0]);
     }
 
     getData();
   }, []);
 
   useEffect(() => {
+    if (settings.date || settings.time) {
+      if (!settings.date || !settings.time) {
+        return;
+      }
+    }
+
     if (start && end && route) {
       getNewRoute({
         start,
@@ -94,6 +101,12 @@ export default function MapView() {
   }, [settings, mode, start, end]);
 
   const onSideBarItemClick = (index: number) => {
+    if (index === activeItemIndex) {
+      setActiveItemIndex(-1);
+      close();
+      return;
+    }
+
     setActiveItemIndex(index);
     open();
   };
@@ -106,6 +119,12 @@ export default function MapView() {
   const onConfirmButtonClick = async () => {
     if (!start || !end) {
       return;
+    }
+
+    if (settings.date || settings.time) {
+      if (!settings.date || !settings.time) {
+        return;
+      }
     }
 
     const timeStamp =
@@ -220,32 +239,28 @@ export default function MapView() {
     setMode(mode);
   };
 
-  const handleCityChange = useCallback(
-    (cityName: string) => {
-      setCity(cityName);
+  const handleCityChange = useCallback((selectedCity: City) => {
+    setCity(selectedCity);
 
-      setRoute(null);
-      setRouteGeoJson(null);
-      setStart(null);
-      setEnd(null);
+    setRoute(null);
+    setRouteGeoJson(null);
+    setStart(null);
+    setEnd(null);
 
-      const selectedCity = cityOptions.find((city) => city.name === cityName);
-      if (selectedCity && mapRef.current) {
-        mapRef.current.easeTo({
-          center: selectedCity.coordinates,
-          zoom: 14,
-        });
-      }
-    },
-    [cityOptions],
-  );
+    if (selectedCity && mapRef.current) {
+      mapRef.current.easeTo({
+        center: selectedCity.coordinates,
+        zoom: 14,
+      });
+    }
+  }, []);
 
   const onSaveButtonClick = () => {
     openSaveRouteModal();
   };
 
   const onSaveRoute = async (routeName: string) => {
-    if (!start || !end || !route || !user || !lastUsedTripTime) {
+    if (!start || !end || !route || !user || !lastUsedTripTime || !city) {
       return;
     }
 
@@ -261,32 +276,36 @@ export default function MapView() {
       };
     });
 
-    const routeData = {
+    const routeData: SavedRoute = {
       name: routeName,
-      userId: user.uid,
       start: [start.lng, start.lat] as [number, number],
       end: [end.lng, end.lat] as [number, number],
       path,
       details,
+      instructions: route.instructions,
       city,
       mode,
-      settings,
+      parameter: settings.shade,
       timeStamp: lastUsedTripTime,
       distance: route.distance,
       weightedAverageCoverage: route.weightedAverageCoverage,
       createdAt: new Date().toISOString(),
     };
 
-    await addDocument<SavedRoute>('routes', undefined, routeData);
+    await addDocument<SavedRoute>(`users/${user.uid}/routes`, routeData);
   };
+
+  if (!cityOptions || !city) {
+    return <LoadingOverlay visible />;
+  }
 
   return (
     <div style={{ height: '100vh' }}>
       <Map
         ref={mapRef}
         initialViewState={{
-          longitude: -122.4,
-          latitude: 37.8,
+          longitude: city.coordinates[0],
+          latitude: city.coordinates[1],
           zoom: 14,
         }}
         mapStyle="https://api.maptiler.com/maps/streets-v2/style.json?key=GCM8fpRf6jBxjt7iLyjd"
@@ -315,6 +334,10 @@ export default function MapView() {
                   '#44cc44',
                 ],
                 'line-width': 4,
+              }}
+              layout={{
+                'line-cap': 'round',
+                'line-join': 'round',
               }}
             />
           </Source>
@@ -345,8 +368,13 @@ export default function MapView() {
       />
 
       <MapOverlay position="top-left">
-        <div style={{ height: '100vh', backgroundColor: '#1C2321', width: '100px', overflowY: 'hidden' }}>
-          <SideBar onItemClick={onSideBarItemClick} activeItemIndex={activeItemIndex} />
+        <div style={{ height: '100vh', backgroundColor: '#1C2321', width: '140px', overflowY: 'hidden' }}>
+          <SideBar
+            onItemClick={onSideBarItemClick}
+            activeItemIndex={activeItemIndex}
+            selectedCity={city}
+            selectedMode={mode}
+          />
         </div>
       </MapOverlay>
 

@@ -98,7 +98,7 @@ export default function AuthForm({ isSignIn, onSignInSuccess }: AuthFormProps) {
         </>
       )}
 
-      <Button type="submit" radius={'md'}>
+      <Button type="submit" radius="md" size="md">
         {isSignIn ? 'Login' : 'Sign Up'}
       </Button>
     </form>

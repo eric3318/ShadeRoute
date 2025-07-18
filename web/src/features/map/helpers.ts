@@ -15,13 +15,11 @@ export function getRouteGeoJson(route: Route): GeoJSON.FeatureCollection {
   };
 }
 
-export async function addDocument<T extends WithFieldValue<DocumentData>>(
-  collectionName: string,
-  subCollectionName: string = '',
-  data: T,
-): Promise<string | null> {
+export const addDocument = async <T extends WithFieldValue<DocumentData>>(
+  path: string,
+  data: T
+): Promise<string | null> => {
   try {
-    const path = `${collectionName}${subCollectionName && `/${subCollectionName}`}`;
     const collectionRef = collection(db, path);
     const docRef = await addDoc(collectionRef, data);
 
@@ -34,7 +32,7 @@ export async function addDocument<T extends WithFieldValue<DocumentData>>(
     console.log(err);
     return null;
   }
-}
+};
 
 // export const updateDocument = async (
 //   collectionName: string,

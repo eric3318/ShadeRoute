@@ -3,8 +3,12 @@ import github from '../../../../assets/github.png';
 import { Link } from 'react-router';
 import logoText from '../../../../assets/logo-text.svg';
 import { UnstyledButton } from '@mantine/core';
-import { useAuth } from '../../../../features/auth/hooks/useAuth/useAuth';
+import { useAuth } from '../../../auth/hooks/useAuth/useAuth.ts';
+import { signOut } from 'firebase/auth';
+import { auth } from '../../../../../firebase.ts';
 import styles from './navBar.module.css';
+
+const GITHUB_LINK = 'https://github.com/eric3318/ShadeRoute';
 
 export default function NavBar() {
   const { user } = useAuth();
@@ -18,24 +22,23 @@ export default function NavBar() {
       </Group>
 
       <Group gap="xl" className={styles.buttons}>
-        <Button variant="default" size="md" radius="md" bd={0}>
+        <Button component={Link} to={GITHUB_LINK} variant="default" size="md" radius="md" bd={0}>
           <img src={github} alt="github" style={{ height: '100%', width: '100%', padding: '6px 0' }} />
         </Button>
 
         {user ? (
-          <Button component={Link} to="/profile" color="#0AB6FF" c="black" size="md" radius="md">
-            Profile
-          </Button>
-        ) : (
           <Button
-            component={Link}
-            to="/sign-in"
-            color="#0AB6FF"
-            c="black"
+            variant="default"
             size="md"
             radius="md"
-            loading={user === undefined}
+            onClick={async () => {
+              await signOut(auth);
+            }}
           >
+            Log out
+          </Button>
+        ) : (
+          <Button component={Link} to="/sign-in" color="#0AB6FF" c="black" size="md" radius="md">
             Sign in
           </Button>
         )}
