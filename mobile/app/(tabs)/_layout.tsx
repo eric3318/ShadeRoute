@@ -1,5 +1,6 @@
 import { Redirect, Tabs } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AntDesign from '@expo/vector-icons/AntDesign';
 import { router } from 'expo-router';
 import { IconButton } from 'react-native-paper';
 import { useAuth } from '@/hooks/useAuth/useAuth';
@@ -37,7 +38,6 @@ export default function Layout() {
           tabBarLabel: 'saved routes',
           tabBarLabelStyle: {
             fontSize: 12,
-            marginTop: 4,
             color: '#3fa7d6',
           },
           headerTitle: 'Routes',
@@ -48,18 +48,15 @@ export default function Layout() {
       />
 
       <Tabs.Screen
-        name="my-trips"
+        name="profile"
         options={{
-          tabBarIcon: () => (
-            <MaterialIcons name="route" size={24} color="#3fa7d6" />
-          ),
-          tabBarLabel: 'my trips',
+          tabBarIcon: () => <AntDesign name="user" size={24} color="#3fa7d6" />,
+          tabBarLabel: 'profile',
           tabBarLabelStyle: {
             fontSize: 12,
-            marginTop: 4,
             color: '#3fa7d6',
           },
-          headerTitle: 'Trips',
+          headerTitle: 'My Profile',
         }}
       />
     </Tabs>

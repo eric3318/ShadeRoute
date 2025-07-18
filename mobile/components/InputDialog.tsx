@@ -53,8 +53,6 @@ export default function InputDialog({
           </Button>
           <Button
             onPress={onSaveButtonClick}
-            textColor="white"
-            buttonColor="#ee6352"
             mode="contained"
             style={{ borderRadius: 6, width: 80 }}
           >

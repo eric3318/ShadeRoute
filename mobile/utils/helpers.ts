@@ -24,9 +24,9 @@ export async function initRouting(
 ): Promise<InitRoutingResponse | null> {
   try {
     const response = await fetch(
-      // `${process.env.EXPO_PUBLIC_SERVER_URL}/api/route`,
+      `${process.env.EXPO_PUBLIC_SERVER_URL}/api/route`,
       // 'https://api.shadepath.com/api/route',
-      'http://localhost:8080/api/route',
+      // 'http://localhost:8080/api/route',
       {
         method: 'POST',
         headers: {
@@ -54,9 +54,9 @@ export async function pollResult(jobId: string): Promise<Route | null> {
     const interval = setInterval(async () => {
       try {
         const response = await fetch(
-          // `${process.env.EXPO_PUBLIC_SERVER_URL}/api/results?jobId=${jobId}`
+          `${process.env.EXPO_PUBLIC_SERVER_URL}/api/results?jobId=${jobId}`
           // `https://api.shadepath.com/api/results?jobId=${jobId}`
-          `http://localhost:8080/api/results?jobId=${jobId}`
+          // `http://localhost:8080/api/results?jobId=${jobId}`
         );
 
         if (!response.ok) {

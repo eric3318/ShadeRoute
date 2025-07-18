@@ -146,9 +146,8 @@ export default function ControlPanel({
             </View>
 
             <Button
+              mode="contained"
               onPress={onConfirmSettings}
-              buttonColor="#ee6352"
-              textColor="white"
               labelStyle={{ fontSize: 18 }}
               style={{ borderRadius: 6, marginBottom: 12 }}
             >

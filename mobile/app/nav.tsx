@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import LocationButton from '@/components/LocationButton';
 import Map from '@/components/Map';
@@ -86,7 +86,7 @@ export default function Nav() {
   const [inputDialogVisible, setInputDialogVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
-  const [speed, setSpeed] = useState<number>(0);
+  // const [speed, setSpeed] = useState<number>(0);
   const attemptingSignin = useRef<boolean>(false);
 
   const handleConfirmSaveRoute = () => {
@@ -322,8 +322,8 @@ export default function Nav() {
       const routeData = buildRouteData(name);
       await saveRoute(routeData, `users/${user?.uid}/routes`);
       onInputDialogClose();
-    } catch (e) {
-      console.log(e);
+    } catch (err) {
+      console.log(err);
       Alert.alert('Failed to save route', 'Please try again');
     }
   };
@@ -436,13 +436,13 @@ const styles = StyleSheet.create({
   locationButtonContainer: {
     rowGap: 10,
     position: 'absolute',
-    bottom: '28%',
+    bottom: '30%',
     left: 0,
     zIndex: 1,
   },
   promptContainer: {
     position: 'absolute',
-    top: '12%',
+    top: '10%',
     left: 0,
     right: 0,
     marginHorizontal: 18,

@@ -1,15 +1,9 @@
-import {
-  View,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  Image,
-  Alert,
-} from 'react-native';
+import { View, StyleSheet, Image, Alert, Text } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth/useAuth';
+import { updateProfile } from 'firebase/auth';
 
 export default function Auth() {
   const router = useRouter();
@@ -18,6 +12,7 @@ export default function Auth() {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [displayName, setDisplayName] = useState<string>('');
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
@@ -51,7 +46,7 @@ export default function Auth() {
       return;
     }
 
-    const { error } = await signUp(email, password);
+    const { user, error } = await signUp(email, password);
 
     if (error) {
       Alert.alert('Signup failed', error, [
@@ -63,6 +58,14 @@ export default function Auth() {
 
       return;
     }
+
+    if (user && displayName) {
+      await updateProfile(user, {
+        displayName,
+      });
+    }
+
+    router.dismiss();
   };
 
   const handleModeToggle = () => {
@@ -77,9 +80,16 @@ export default function Auth() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <Image source={require('@/assets/images/react-logo.png')} />
+        <Text
+          style={{
+            fontSize: 32,
+            fontWeight: 900,
+          }}
+        >
+          {isSignUp ? 'Sign Up' : 'Log in'}
+        </Text>
       </View>
 
       <View style={styles.form}>
@@ -103,16 +113,25 @@ export default function Auth() {
         />
 
         {isSignUp && (
-          <TextInput
-            label="Confirm Password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={!showPassword}
-            right={
-              <TextInput.Icon icon="eye" onPress={handleShowPassWordToggle} />
-            }
-            autoCapitalize="none"
-          />
+          <>
+            <TextInput
+              label="Confirm Password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showPassword}
+              right={
+                <TextInput.Icon icon="eye" onPress={handleShowPassWordToggle} />
+              }
+              autoCapitalize="none"
+            />
+
+            <TextInput
+              label="Display name (optional)"
+              value={displayName}
+              onChangeText={setDisplayName}
+              autoCapitalize="none"
+            />
+          </>
         )}
 
         <Button
@@ -132,13 +151,16 @@ export default function Auth() {
             : "Don't have an account? Sign Up"}
         </Button>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 12,
+    rowGap: 12,
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',

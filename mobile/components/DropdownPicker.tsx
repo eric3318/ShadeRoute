@@ -1,13 +1,12 @@
 import { Picker } from '@react-native-picker/picker';
-import { useState } from 'react';
-import { DimensionValue, View } from 'react-native';
+import { DimensionValue, Platform, View } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { Button } from 'react-native-paper';
 
 type DropdownPickerProps = {
   options: string[];
-  visible?: boolean;
-  onVisibilityChange?: (visible: boolean) => void;
+  visible: boolean;
+  onVisibilityChange: (visible: boolean) => void;
   value: string;
   defaultValue: string;
   placeholder?: string;
@@ -33,40 +32,40 @@ export default function DropdownPicker({
   dropdownWidth = 200,
   sameWidth = false,
 }: DropdownPickerProps) {
-  const [internalVisible, setInternalVisible] = useState<boolean>(false);
-  const controlled = visible !== undefined;
-
   const handleValueChange = (value: string) => {
     onValueChange(value);
   };
 
   const toggleVisible = () => {
-    if (controlled) {
-      onVisibilityChange?.(!visible);
-    } else {
-      setInternalVisible(!internalVisible);
-    }
+    onVisibilityChange(visible);
   };
 
   return (
     <View style={styles.container}>
-      <Button
-        mode="text"
-        textColor={color}
-        onPress={toggleVisible}
-        icon={icon}
-        buttonColor={value !== defaultValue ? '#8ecae6' : ''}
-        style={[{ width: width }]}
-      >
-        {value === defaultValue ? (placeholder ?? value) : value}
-      </Button>
+      {Platform.OS === 'ios' && (
+        <Button
+          mode="text"
+          textColor={color}
+          onPress={toggleVisible}
+          icon={icon}
+          buttonColor={value !== defaultValue ? '#8ecae6' : ''}
+          style={[{ width: width }]}
+        >
+          {value === defaultValue ? (placeholder ?? value) : value}
+        </Button>
+      )}
 
-      {(controlled ? visible : internalVisible) && (
+      {(Platform.OS === 'ios' ? visible : true) && (
         <Picker
           selectedValue={value}
           onValueChange={handleValueChange}
           itemStyle={{ height: 150 }}
-          style={[styles.picker, { width: sameWidth ? width : dropdownWidth }]}
+          mode="dialog"
+          style={
+            Platform.OS === 'ios'
+              ? [styles.picker, { width: sameWidth ? width : dropdownWidth }]
+              : undefined
+          }
         >
           {options.map((option) => (
             <Picker.Item key={option} label={option} value={option} />
@@ -83,10 +82,9 @@ const styles = StyleSheet.create({
     flexBasis: 0,
     flexGrow: 1,
   },
-
   picker: {
     position: 'absolute',
-    top: 52,
+    top: 50,
     zIndex: 1000,
     borderRadius: 18,
     backgroundColor: 'white',

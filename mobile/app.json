@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "client",
-    "slug": "client",
+    "name": "ShadeRoute",
+    "slug": "shaderoute",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/image-1.png",
@@ -35,8 +35,7 @@
         {
           "image": "./assets/images/splash.png",
           "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffc857"
+          "resizeMode": "contain"
         }
       ],
       [
@@ -63,7 +62,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "714b53e9-5973-4258-9379-ee2b893a76e7"
+        "projectId": "5a438641-dc66-44ad-b048-d79808a3675a"
       }
     },
     "owner": "hannie2"

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, SafeAreaView, FlatList } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Alert } from 'react-native';
 import { router } from 'expo-router';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useOptions } from '@/hooks/useOptions/useOptions';
@@ -8,6 +8,8 @@ import { Button } from 'react-native-paper';
 import { useState, useEffect } from 'react';
 import { Pressable, useAnimatedValue, Animated } from 'react-native';
 import React from 'react';
+import { useLocation } from '@/hooks/useLocation/useLocation';
+import { Linking } from 'react-native';
 
 const modeOptions = [
   {
@@ -30,6 +32,7 @@ const modeOptions = [
 export default function Index() {
   const { city, cityOptions, setCity, mode, setMode } = useOptions();
   const { state, setState } = useAppState();
+  const { requestLocationPermission } = useLocation();
   const [selectedCity, setSelectedCity] = useState<{
     name: string;
     coordinates: [number, number];
@@ -43,7 +46,21 @@ export default function Index() {
     setSelectedMode(mode);
   }, [city, mode]);
 
-  const onConfirmButtonClick = () => {
+  const onConfirmButtonClick = async () => {
+    if (!(await requestLocationPermission())) {
+      Alert.alert(
+        'Permission for location required',
+        'ShadeRoute uses GPS to track and display your location on the map. Your permission is required to use the app.',
+        [
+          {
+            text: 'Go to Settings',
+            onPress: async () => await Linking.openSettings(),
+          },
+        ]
+      );
+      return;
+    }
+
     if (selectedMode && selectedMode !== mode) {
       setMode(selectedMode);
     }
@@ -120,106 +137,98 @@ export default function Index() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.contentContainer}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.heading}>
-            Select a {currentStep === 1 ? 'Mode' : 'City'}
-          </Text>
-          <Button
-            onPress={onSavedRoutesButtonClick}
-            buttonColor="#ee6352"
-            textColor="white"
-            labelStyle={{ fontSize: 16 }}
-            style={{ borderRadius: 6 }}
-          >
-            Saved Routes
-          </Button>
+    <View style={styles.container}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.heading}>
+          Select a {currentStep === 1 ? 'Mode' : 'City'}
+        </Text>
+        <Button
+          mode="contained"
+          onPress={onSavedRoutesButtonClick}
+          labelStyle={{ fontSize: 16, marginHorizontal: 8 }}
+          style={{ borderRadius: 6 }}
+        >
+          Saved Routes
+        </Button>
+      </View>
+
+      <Animated.View
+        style={{
+          transform: [{ translateX: slideAnim }],
+          display: currentStep === 1 ? 'flex' : 'none',
+          rowGap: 24,
+        }}
+      >
+        <View style={styles.modeContainer}>
+          {modeOptions.map((option) => (
+            <Pressable
+              key={option.value}
+              style={({ pressed }) => [
+                styles.card,
+                selectedMode === option.value && styles.selectedCard,
+              ]}
+              onPress={() => setSelectedMode(option.value)}
+            >
+              {option.icon()}
+              <Text style={styles.cardText}>{option.label}</Text>
+            </Pressable>
+          ))}
         </View>
 
-        <Animated.View
+        <Button
+          onPress={onNextButtonClick}
+          mode="contained"
+          icon={() => (
+            <FontAwesome6 name="arrow-right" size={20} color="white" />
+          )}
+          labelStyle={{ fontSize: 18 }}
           style={{
-            transform: [{ translateX: slideAnim }],
-            display: currentStep === 1 ? 'flex' : 'none',
-            rowGap: 24,
+            alignSelf: 'center',
+            borderRadius: 6,
           }}
         >
-          <View style={styles.modeContainer}>
-            {modeOptions.map((option) => (
-              <Pressable
-                key={option.value}
-                style={({ pressed }) => [
-                  styles.card,
-                  selectedMode === option.value && styles.selectedCard,
-                ]}
-                onPress={() => setSelectedMode(option.value)}
-              >
-                {option.icon()}
-                <Text style={styles.cardText}>{option.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+          Next
+        </Button>
+      </Animated.View>
 
-          <Button
-            onPress={onNextButtonClick}
-            mode="contained"
-            icon={() => (
-              <FontAwesome6 name="arrow-right" size={20} color="white" />
-            )}
-            buttonColor="#ee6352"
-            labelStyle={{ fontSize: 18 }}
-            style={{
-              alignSelf: 'center',
-              borderRadius: 6,
-            }}
-          >
-            Next
-          </Button>
-        </Animated.View>
+      <Animated.View
+        style={{
+          transform: [{ translateX: slideAnim }],
+          display: currentStep === 2 ? 'flex' : 'none',
+          rowGap: 24,
+        }}
+      >
+        <FlatList
+          data={cityOptions}
+          renderItem={({ item }) => renderCityOption(item)}
+          contentContainerStyle={{ rowGap: 12 }}
+          columnWrapperStyle={{ columnGap: 12 }}
+          numColumns={2}
+          keyExtractor={(item) => item.name}
+        />
 
-        <Animated.View
+        <Button
+          onPress={onConfirmButtonClick}
+          mode="contained"
+          icon={() => (
+            <FontAwesome6 name="arrow-right" size={20} color="white" />
+          )}
+          labelStyle={{ fontSize: 18 }}
           style={{
-            transform: [{ translateX: slideAnim }],
-            display: currentStep === 2 ? 'flex' : 'none',
-            rowGap: 24,
+            alignSelf: 'center',
+            borderRadius: 6,
           }}
         >
-          <FlatList
-            data={cityOptions}
-            renderItem={({ item }) => renderCityOption(item)}
-            contentContainerStyle={{ rowGap: 12 }}
-            columnWrapperStyle={{ columnGap: 12 }}
-            numColumns={2}
-            keyExtractor={(item) => item.name}
-          />
-
-          <Button
-            onPress={onConfirmButtonClick}
-            mode="contained"
-            icon={() => (
-              <FontAwesome6 name="arrow-right" size={20} color="white" />
-            )}
-            buttonColor="#ee6352"
-            labelStyle={{ fontSize: 18 }}
-            style={{
-              alignSelf: 'center',
-              borderRadius: 6,
-            }}
-          >
-            Confirm
-          </Button>
-        </Animated.View>
-      </View>
-    </SafeAreaView>
+          Confirm
+        </Button>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: '#ffc857',
-  },
-  contentContainer: {
     flex: 1,
     justifyContent: 'center',
     padding: 12,

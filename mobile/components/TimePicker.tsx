@@ -1,42 +1,36 @@
-import { View, Text, SafeAreaView, Button, StyleSheet } from 'react-native';
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from '@react-native-community/datetimepicker';
+import { SafeAreaView, StyleSheet } from 'react-native';
+import DatePicker from 'react-native-date-picker';
 
-type TimePickerProps  ={
+type TimePickerProps = {
   mode: 'date' | 'time';
   date: Date | null;
   onTimeChange: (date: Date) => void;
-}
+};
 
 export default function TimePicker({
   date,
   mode,
   onTimeChange,
 }: TimePickerProps) {
-  const onChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (selectedDate) {
-      onTimeChange(selectedDate);
-    }
+  const onChange = (selectedDate: Date) => {
+    onTimeChange(selectedDate);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       {mode === 'date' ? (
-        <DateTimePicker
-          testID="datePicker"
-          value={date || new Date()}
-          onChange={onChange}
-          display="spinner"
+        <DatePicker
+          date={date || new Date()}
+          onDateChange={onChange}
           mode="date"
+          theme="light"
         />
       ) : (
-        <DateTimePicker
-          testID="timePicker"
-          value={date || new Date()}
-          onChange={onChange}
-          display="spinner"
+        <DatePicker
+          date={date || new Date()}
+          onDateChange={onChange}
           mode="time"
+          theme="light"
         />
       )}
     </SafeAreaView>

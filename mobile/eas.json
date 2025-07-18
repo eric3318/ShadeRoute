@@ -9,7 +9,7 @@
       "distribution": "internal"
     },
     "preview": {
-      "env": {},
+      "environment": "preview",
       "distribution": "internal",
       "android": {
         "buildType": "apk"

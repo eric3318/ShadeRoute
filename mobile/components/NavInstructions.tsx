@@ -40,12 +40,13 @@ export default function NavInstructions({
   const [isOffRoute, setIsOffRoute] = useState<boolean>(false);
   const previousDistanceToPointBehind = useRef<number>(0);
   const lastSpokenInstructionIndex = useRef<number | null>(null);
+  const lastSpokenAt = useRef<number | null>(null);
   const navStarted = lastPassedInstructionIndex !== null;
 
   const processLocation = (coords: [number, number]) => {
     // if navigation has just started
     if (lastPassedInstructionIndex === null) {
-      if (calcDistance(coords, routePath[0]) <= 30) {
+      if (calcDistance(coords, routePath[0]) <= 100) {
         setLastPassedInstructionIndex(0);
         setIsOffRoute(false);
 
@@ -97,7 +98,7 @@ export default function NavInstructions({
           );
 
           // if the snap point is close enough to the gps location
-          if (distanceToSnapPoint <= 50) {
+          if (distanceToSnapPoint <= 80) {
             // check if the user is moving forward or backward
             if (i !== lastPassedInstructionIndex) {
               previousDistanceToPointBehind.current = 0;
@@ -145,10 +146,13 @@ export default function NavInstructions({
 
   useEffect(() => {
     if (navStarted) {
+      const now = Date.now();
+
       if (lastPassedInstructionIndex === 0) {
-        if (lastSpokenInstructionIndex.current !== 0) {
+        if (lastSpokenInstructionIndex.current === null) {
           speakInstruction(instructions[0].turnDescription);
           lastSpokenInstructionIndex.current = 0;
+          lastSpokenAt.current = now;
         }
       }
 
@@ -158,12 +162,17 @@ export default function NavInstructions({
       ) {
         const nextInstructionIndex = lastPassedInstructionIndex + 1;
 
-        if (lastSpokenInstructionIndex.current !== nextInstructionIndex) {
+        if (
+          lastSpokenInstructionIndex.current !== nextInstructionIndex &&
+          lastSpokenAt.current &&
+          now - lastSpokenAt.current > 3000
+        ) {
           speakInstruction(
             instructions[nextInstructionIndex].turnDescription,
             distanceToNextInstruction
           );
           lastSpokenInstructionIndex.current = nextInstructionIndex;
+          lastSpokenAt.current = now;
         }
       }
     }
@@ -178,6 +187,7 @@ export default function NavInstructions({
       const speech = distance
         ? `${turnDescription} in ${Math.round(distance)} meters`
         : turnDescription;
+
       Speech.speak(speech);
     } catch (error) {
       console.log('Speech error:', error);
@@ -192,11 +202,19 @@ export default function NavInstructions({
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') return;
 
+        // Use last known location to immediately initialize
+        const lastKnown = await Location.getLastKnownPositionAsync();
+        if (lastKnown) {
+          const coords: [number, number] = [
+            lastKnown.coords.longitude,
+            lastKnown.coords.latitude,
+          ];
+          processLocation(coords);
+        }
+
         subscription = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.BestForNavigation,
-            timeInterval: 1000,
-            distanceInterval: 1,
           },
           (location) => {
             const coords: [number, number] = [

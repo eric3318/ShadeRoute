@@ -1,4 +1,4 @@
-import { View, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet, FlatList, Alert, Linking } from 'react-native';
 import { useState, useEffect } from 'react';
 import RouteListItem from '@/components/RouteListItem';
 import DropdownPicker from '@/components/DropdownPicker';
@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth/useAuth';
 import { getDocuments } from '@/utils/firebaseHelpers';
 import { useRoute } from '@/hooks/useRoute/useRoute';
 import { useRouter } from 'expo-router';
+import { useLocation } from '@/hooks/useLocation/useLocation';
 
 const sortByOptions = [
   'Date Created',
@@ -22,7 +23,8 @@ const modeFilterOptions = ['All', 'walking', 'running', 'biking'];
 type SavedRouteWithId = SavedRoute & { id: string };
 
 export default function RoutesSaved() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const { requestLocationPermission } = useLocation();
   const { setRoute } = useRoute();
   const router = useRouter();
   const [routes, setRoutes] = useState<SavedRouteWithId[]>([]);
@@ -138,7 +140,21 @@ export default function RoutesSaved() {
     });
   };
 
-  const onRoutePress = (route: SavedRoute) => {
+  const onRoutePress = async (route: SavedRoute) => {
+    if (!(await requestLocationPermission())) {
+      Alert.alert(
+        'Permission for location required',
+        'ShadeRoute uses GPS to track and display your location on the map. Your permission is required to use the app.',
+        [
+          {
+            text: 'Go to Settings',
+            onPress: async () => await Linking.openSettings(),
+          },
+        ]
+      );
+      return;
+    }
+
     setRoute(route);
     router.dismissAll();
     router.replace('/nav');
@@ -146,8 +162,6 @@ export default function RoutesSaved() {
 
   return (
     <View style={styles.container}>
-      <Button onPress={logout}>Test</Button>
-
       <View style={styles.filterContainer}>
         <DropdownPicker
           options={sortByOptions}

@@ -1,11 +1,11 @@
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useLocation } from '@/hooks/useLocation/useLocation';
 import { StyleSheet } from 'react-native';
-import { Button, IconButton } from 'react-native-paper';
+import { IconButton } from 'react-native-paper';
 
 type Props = {
-  onRequestLocation:  ()=>void;
-}
+  onRequestLocation: () => void;
+};
 
 export default function LocationButton({ onRequestLocation }: Props) {
   const { requestLocation } = useLocation();

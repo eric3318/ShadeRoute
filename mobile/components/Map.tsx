@@ -76,7 +76,11 @@ export default function Map({
   };
 
   return (
-    <MapboxGL.MapView style={styles.map} onPress={onMapPress}>
+    <MapboxGL.MapView
+      style={styles.map}
+      onPress={onMapPress}
+      compassEnabled={true}
+    >
       <MapboxGL.Camera
         zoomLevel={bounds ? undefined : 15}
         animationMode={bounds ? 'flyTo' : 'moveTo'}
