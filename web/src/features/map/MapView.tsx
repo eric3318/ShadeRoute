@@ -172,9 +172,19 @@ export default function MapView() {
         return;
       }
 
+      const routeDetails = data.details;
+
+      const length = routeDetails.length;
+
+      routeDetails[0].points = data.path.slice(0, routeDetails[0].points.length);
+
+      routeDetails[length - 1].points = data.path.slice(data.path.length - routeDetails[length - 1].points.length);
+
+      const convertedRoute = { ...data, details: routeDetails };
+
       setLastUsedTripTime(timeStamp);
-      setRoute(data);
-      setRouteGeoJson(getRouteGeoJson(data));
+      setRoute(convertedRoute);
+      setRouteGeoJson(getRouteGeoJson(convertedRoute));
     } finally {
       setIsLoading(false);
     }
