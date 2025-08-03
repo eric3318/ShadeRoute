@@ -3,11 +3,10 @@ import TimeDialog from './TimeDialog';
 import { useState } from 'react';
 import { APP_STATE } from '@/lib/types';
 import React from 'react';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAppState } from '@/hooks/useAppState/useAppState';
 import { useOptions } from '@/hooks/useOptions/useOptions';
 import { format } from 'date-fns';
-import { Button, IconButton } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import Slider from '@react-native-community/slider';
 
 type ControlPanelProps = {
@@ -20,8 +19,7 @@ type ControlPanelProps = {
   navInfo?: {
     distanceTraveled: number;
     averageSpeed: number;
-    arrivalTime: number;
-    speed: number;
+    arrivalTime: number | null;
   };
 };
 
@@ -76,12 +74,19 @@ export default function ControlPanel({
               <View style={styles.navInfoContainer}>
                 <FlatList
                   data={[
-                    { label: 'Distance', value: navInfo.distanceTraveled },
-                    { label: 'Current Speed', value: navInfo.speed },
-                    { label: 'Average Speed', value: navInfo.averageSpeed },
+                    {
+                      label: 'Distance',
+                      value: `${navInfo.distanceTraveled.toFixed(1)} m`,
+                    },
+                    {
+                      label: 'Average Speed',
+                      value: ` ${navInfo.averageSpeed.toFixed(2)} m/s`,
+                    },
                     {
                       label: 'Arrival',
-                      value: format(navInfo.arrivalTime, 'hh:mm a'),
+                      value: navInfo.arrivalTime
+                        ? format(navInfo.arrivalTime, 'hh:mm a')
+                        : 'N/A',
                     },
                   ]}
                   renderItem={({ item }) => (

@@ -4,7 +4,6 @@
     "slug": "shaderoute",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/image-1.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,8 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/icon.png"
       },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -33,9 +31,13 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash.png",
-          "imageWidth": 200,
-          "resizeMode": "contain"
+          "backgroundColor": "#ffffff",
+          "image": "./assets/images/splash-icon-dark.png",
+          "dark": {
+            "image": "./assets/images/splash-icon-light.png",
+            "backgroundColor": "#000000"
+          },
+          "imageWidth": 200
         }
       ],
       [

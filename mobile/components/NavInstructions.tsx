@@ -15,11 +15,11 @@ type NavInstructionsProps = {
   onInfoChange: (
     distanceTraveled: number,
     averageSpeed: number,
-    arrivalTime: number,
-    speed: number
+    arrivalTime: number | null
   ) => void;
   onHeadingChange: (heading: number) => void;
   onEndTrip: () => void;
+  onNewDebugLog: (logContent: string) => void;
 };
 
 export default function NavInstructions({
@@ -30,41 +30,86 @@ export default function NavInstructions({
   onInfoChange,
   onHeadingChange,
   onEndTrip,
+  onNewDebugLog,
 }: NavInstructionsProps) {
   const { setLocation } = useLocation();
-  const [distanceToNextInstruction, setDistanceToNextInstruction] =
-    useState<number>(0);
-  const [lastPassedInstructionIndex, setLastPassedInstructionIndex] = useState<
+
+  const [lastPassedPointIndex, setLastPassedPointIndex] = useState<
     number | null
   >(null);
-  const [isOffRoute, setIsOffRoute] = useState<boolean>(false);
   const previousDistanceToPointBehind = useRef<number>(0);
+
+  const [instructionText, setInstructionText] = useState<string>('');
+  const nextInstructionIdx = useRef<number>(0);
+  const [distanceToNextInstruction, setDistanceToNextInstruction] = useState<
+    number | null
+  >(null);
+
+  const [isReady, setIsReady] = useState<boolean>(false);
+  const [isOffRoute, setIsOffRoute] = useState<boolean>(false);
+  const [isFreeWalking, setIsFreeWalking] = useState<boolean>(false);
   const lastSpokenInstructionIndex = useRef<number | null>(null);
   const lastSpokenAt = useRef<number | null>(null);
-  const navStarted = lastPassedInstructionIndex !== null;
 
-  const processLocation = (coords: [number, number]) => {
-    // if navigation has just started
-    if (lastPassedInstructionIndex === null) {
-      if (calcDistance(coords, routePath[0]) <= 100) {
-        setLastPassedInstructionIndex(0);
-        setIsOffRoute(false);
+  const [distanceTravelled, setDistanceTravelled] = useState<number>(0);
 
-        if (instructions.length > 1) {
-          setDistanceToNextInstruction(
-            calcDistance(coords, routePath[instructions[1].interval[0]])
-          );
-        }
-      }
+  const processLocationRef = useRef<
+    (coords: [number, number], accuracy: number) => void
+  >(() => {});
+
+  const processLocation = (coords: [number, number], accuracy: number) => {
+    onNewDebugLog(
+      `***Processing new location (${coords[0]}, ${coords[1]}) with accuracy ${accuracy}***`
+    );
+
+    if (
+      lastPassedPointIndex === null &&
+      calcDistance(coords, routePath[0]) <= 50
+    ) {
+      onNewDebugLog(
+        '---Navigation has just started and user is within the free walk radius of origin.---'
+      );
 
       setLocation(coords);
+
+      setIsFreeWalking(true);
+
+      setIsOffRoute(false);
+
+      const distance = calcDistance(
+        coords,
+        routePath[instructions[nextInstructionIdx.current].interval[0]]
+      );
+
+      setDistanceToNextInstruction(distance);
+
+      onNewDebugLog(`Update distanceToNextInstruction to ${distance}`);
+    } else if (calcDistance(coords, routePath[routePath.length - 1]) <= 20) {
+      onNewDebugLog(
+        '---Ending trip because the distance to destination is less than 20 meters.---'
+      );
+
+      setLocation(coords);
+
+      setIsFreeWalking(false);
+
+      setIsOffRoute(false);
+
+      onEndTrip();
     } else {
-      // find which instruction the gps location is the closest to
+      onNewDebugLog(
+        '---Finding the closest route segment to the GPS location.---'
+      );
+
+      setIsFreeWalking(false);
+
       let found = false;
 
-      for (let i = lastPassedInstructionIndex; i < instructions.length; i++) {
-        const possiblePointBehind = routePath[instructions[i].interval[0]];
-        const possiblePointAhead = routePath[instructions[i].interval[1]];
+      const startIndex = lastPassedPointIndex ?? 0;
+
+      for (let i = startIndex; i < routePath.length - 1; i++) {
+        const possiblePointBehind = routePath[i];
+        const possiblePointAhead = routePath[i + 1];
 
         const distanceBetween = calcDistance(
           possiblePointBehind,
@@ -81,11 +126,14 @@ export default function NavInstructions({
           possiblePointAhead
         );
 
-        // if gps location is between two points on the route
         if (
-          distanceToPossiblePointAhead < distanceBetween &&
-          distanceToPossiblePointBehind < distanceBetween
+          distanceToPossiblePointAhead - accuracy < distanceBetween &&
+          distanceToPossiblePointBehind - accuracy < distanceBetween
         ) {
+          onNewDebugLog(
+            `GPS location is between path points ${i} and ${i + 1}.`
+          );
+
           // find the snap point on the route segment
           const snapPoint = turf.nearestPointOnLine(
             turf.lineString([possiblePointBehind, possiblePointAhead]),
@@ -97,101 +145,108 @@ export default function NavInstructions({
             snapPoint.geometry.coordinates as [number, number]
           );
 
+          onNewDebugLog(
+            `The distance between snap point and GPS location is ${distanceToSnapPoint - accuracy}.`
+          );
+
           // if the snap point is close enough to the gps location
-          if (distanceToSnapPoint <= 80) {
+          if (distanceToSnapPoint - accuracy <= 50) {
+            onNewDebugLog(`The distance is close enough.`);
+
+            let distanceTravelledSince = 0;
+
             // check if the user is moving forward or backward
-            if (i !== lastPassedInstructionIndex) {
+
+            if (i !== lastPassedPointIndex) {
+              let start = lastPassedPointIndex ?? 0;
+
+              for (let j = start; j < i; j++) {
+                distanceTravelledSince += calcDistance(
+                  routePath[j],
+                  routePath[j + 1]
+                );
+              }
+
+              distanceTravelledSince +=
+                distanceToPossiblePointAhead -
+                previousDistanceToPointBehind.current;
+
               previousDistanceToPointBehind.current = 0;
+            } else {
+              distanceTravelledSince +=
+                distanceToPossiblePointBehind -
+                previousDistanceToPointBehind.current;
             }
+
+            onNewDebugLog(
+              `Distance travelled since last time is ${distanceTravelledSince} meters`
+            );
 
             if (
               distanceToPossiblePointBehind >
               previousDistanceToPointBehind.current
             ) {
               // user is moving forward
-              console.log('user is moving forward ');
+              onNewDebugLog('User is moving forward. Updated new location.');
+
               setLocation(snapPoint.geometry.coordinates as [number, number]);
-              setLastPassedInstructionIndex(i);
-              setIsOffRoute(false);
+
+              setDistanceTravelled((prev) => prev + distanceTravelledSince);
+
+              setLastPassedPointIndex(i);
+
+              previousDistanceToPointBehind.current =
+                distanceToPossiblePointBehind;
             } else {
               // user is moving backward
-              console.log('user is not moving forward');
-              setIsOffRoute(false);
+
+              onNewDebugLog(
+                'User is not moving forward. Keep the previous location.'
+              );
             }
 
-            previousDistanceToPointBehind.current =
-              distanceToPossiblePointBehind;
+            setIsOffRoute(false);
+
+            if (nextInstructionIdx.current < instructions.length) {
+              const distanceFromSnapPointToNextInstruction = calcDistance(
+                snapPoint.geometry.coordinates as [number, number],
+                routePath[instructions[nextInstructionIdx.current].interval[0]]
+              );
+
+              setDistanceToNextInstruction(
+                distanceFromSnapPointToNextInstruction
+              );
+            }
+
             found = true;
-
-            const distanceFromSnapPointToNextInstruction = calcDistance(
-              snapPoint.geometry.coordinates as [number, number],
-              routePath[instructions[i + 1].interval[0]]
-            );
-
-            setDistanceToNextInstruction(
-              distanceFromSnapPointToNextInstruction
-            );
             break;
           }
+
+          onNewDebugLog(
+            `The distance is not close enough. Trying the next route segment...`
+          );
         }
       }
 
       // user did not follow the route
       if (!found) {
-        setLocation(coords);
+        onNewDebugLog('Did not find a close enough route segment.');
+
+        onNewDebugLog(
+          'User is off route. Set location to the actual GPS location.'
+        );
+
         setIsOffRoute(true);
+
+        setLocation(coords);
       }
     }
   };
 
-  useEffect(() => {
-    if (navStarted) {
-      const now = Date.now();
-
-      if (lastPassedInstructionIndex === 0) {
-        if (lastSpokenInstructionIndex.current === null) {
-          speakInstruction(instructions[0].turnDescription);
-          lastSpokenInstructionIndex.current = 0;
-          lastSpokenAt.current = now;
-        }
-      }
-
-      if (
-        distanceToNextInstruction < 30 &&
-        lastPassedInstructionIndex + 1 < instructions.length
-      ) {
-        const nextInstructionIndex = lastPassedInstructionIndex + 1;
-
-        if (
-          lastSpokenInstructionIndex.current !== nextInstructionIndex &&
-          lastSpokenAt.current &&
-          now - lastSpokenAt.current > 3000
-        ) {
-          speakInstruction(
-            instructions[nextInstructionIndex].turnDescription,
-            distanceToNextInstruction
-          );
-          lastSpokenInstructionIndex.current = nextInstructionIndex;
-          lastSpokenAt.current = now;
-        }
-      }
-    }
-  }, [distanceToNextInstruction, lastPassedInstructionIndex]);
+  processLocationRef.current = processLocation;
 
   const calcDistance = (point1: [number, number], point2: [number, number]) => {
     return turf.distance(point1, point2, { units: 'meters' });
-  };
-
-  const speakInstruction = (turnDescription: string, distance?: number) => {
-    try {
-      const speech = distance
-        ? `${turnDescription} in ${Math.round(distance)} meters`
-        : turnDescription;
-
-      Speech.speak(speech);
-    } catch (error) {
-      console.log('Speech error:', error);
-    }
   };
 
   useEffect(() => {
@@ -201,16 +256,6 @@ export default function NavInstructions({
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') return;
-
-        // Use last known location to immediately initialize
-        const lastKnown = await Location.getLastKnownPositionAsync();
-        if (lastKnown) {
-          const coords: [number, number] = [
-            lastKnown.coords.longitude,
-            lastKnown.coords.latitude,
-          ];
-          processLocation(coords);
-        }
 
         subscription = await Location.watchPositionAsync(
           {
@@ -222,7 +267,11 @@ export default function NavInstructions({
               location.coords.latitude,
             ];
 
-            processLocation(coords);
+            const accuracy = location.coords.accuracy ?? 0;
+
+            processLocationRef.current(coords, accuracy);
+
+            setIsReady(true);
           }
         );
       } catch (error) {
@@ -239,61 +288,132 @@ export default function NavInstructions({
     };
   }, []);
 
-  // // Heading subscription
-  // useEffect(() => {
-  //   let subscription: Location.LocationSubscription;
+  useEffect(() => {
+    let subscription: Location.LocationSubscription;
 
-  //   const startHeadingTracking = async () => {
-  //     try {
-  //       subscription = await Location.watchHeadingAsync((heading) => {
-  //         onHeadingChange(heading.trueHeading ?? heading.magHeading ?? 0);
-  //       });
-  //     } catch (error) {
-  //       console.log('Heading error:', error);
-  //     }
-  //   };
+    const startHeadingTracking = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
 
-  //   startHeadingTracking();
+      subscription = await Location.watchHeadingAsync((heading) => {
+        onHeadingChange(heading.trueHeading);
+      });
+    };
 
-  //   return () => {
-  //     if (subscription) {
-  //       subscription.remove();
-  //     }
-  //   };
-  // }, []);
+    startHeadingTracking();
 
-  // // Update navigation info
-  // useEffect(() => {
-  //   if (!startTime) return;
+    return () => {
+      if (subscription) {
+        subscription.remove();
+      }
+    };
+  }, []);
 
-  //   const interval = setInterval(() => {
-  //     const currentTime = new Date();
-  //     const timeElapsed = (currentTime.getTime() - startTime.getTime()) / 1000;
-  //     const averageSpeed = timeElapsed > 0 ? distanceTraveled / timeElapsed : 0;
-  //     const remainingDistance = totalDistance - distanceTraveled;
-  //     const eta =
-  //       remainingDistance > 0 && averageSpeed > 0
-  //         ? startTime.getTime() + (totalDistance / averageSpeed) * 1000
-  //         : startTime.getTime();
+  const announce = (instructionContent: string, distance?: number) => {
+    try {
+      const speech = distance
+        ? `${instructionContent} in ${Math.round(distance)} meters`
+        : instructionContent;
 
-  //     onInfoChange(distanceTraveled, averageSpeed, eta, speed);
-  //   }, 1000);
+      Speech.speak(speech);
+    } catch (error) {
+      console.log('Speech error:', error);
+    }
+  };
 
-  //   return () => clearInterval(interval);
-  // }, [distanceTraveled, speed, startTime, totalDistance]);
+  const findNextInstructionIdx = (pathPointIndex: number) => {
+    for (let i = 0; i < instructions.length; i++) {
+      if (
+        instructions[i].interval[0] <= pathPointIndex &&
+        instructions[i].interval[1] >= pathPointIndex
+      ) {
+        return i;
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!distanceToNextInstruction) return;
+
+    if (distanceToNextInstruction > 30) {
+      onNewDebugLog(
+        `Distance to next instruction too large (${distanceToNextInstruction}). Skipping.`
+      );
+      return;
+    }
+
+    const now = Date.now();
+
+    onNewDebugLog(
+      `Distance to next instruction is less than 30 meters: ${distanceToNextInstruction} meters.`
+    );
+
+    if (lastSpokenInstructionIndex.current !== nextInstructionIdx.current) {
+      onNewDebugLog('The instruction has not been announced.');
+
+      if (!lastSpokenAt.current || now - lastSpokenAt.current > 2000) {
+        onNewDebugLog(
+          "OK to speak: either we never spoke before, or it's been \> 2s"
+        );
+
+        setInstructionText(
+          instructions[nextInstructionIdx.current].turnDescription
+        );
+
+        onNewDebugLog(`Update displayed instruction.`);
+
+        announce(
+          instructions[nextInstructionIdx.current].turnDescription,
+          distanceToNextInstruction
+        );
+
+        onNewDebugLog('Announced the instruction.');
+
+        lastSpokenInstructionIndex.current = nextInstructionIdx.current;
+        lastSpokenAt.current = now;
+
+        nextInstructionIdx.current += 1;
+
+        onNewDebugLog(
+          `Proceeded to new instruction ${nextInstructionIdx.current}`
+        );
+      } else {
+        onNewDebugLog('Too soon to speak again. Waiting for the next update.');
+      }
+    } else {
+      onNewDebugLog('The instruction has been announced before. Skipping.');
+    }
+  }, [distanceToNextInstruction]);
+
+  useEffect(() => {
+    const currentTime = Date.now();
+    const timeElapsed = (currentTime - startTime.getTime()) / 1000;
+    const averageSpeed = timeElapsed > 0 ? distanceTravelled / timeElapsed : 0;
+    const remainingDistance = totalDistance - distanceTravelled;
+    const eta =
+      averageSpeed === 0
+        ? null
+        : currentTime + (remainingDistance / averageSpeed) * 1000;
+
+    onInfoChange(distanceTravelled, averageSpeed, eta);
+  }, [distanceTravelled, onInfoChange]);
+
+  if (!isReady) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        {navStarted && instructions.length > 0 ? (
-          <Text style={styles.text}>
-            {isOffRoute
-              ? 'Off route'
-              : instructions[lastPassedInstructionIndex].turnDescription}
-          </Text>
-        ) : (
-          <Text style={styles.text}>Head to the start</Text>
-        )}
+        <Text style={styles.text}>
+          {lastPassedPointIndex === null
+            ? isFreeWalking
+              ? 'Continue to follow the route'
+              : 'Head to the start'
+            : isOffRoute
+              ? 'Return to the route'
+              : instructionText}
+        </Text>
       </View>
     </View>
   );

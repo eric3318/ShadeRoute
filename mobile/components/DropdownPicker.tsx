@@ -64,7 +64,7 @@ export default function DropdownPicker({
           style={
             Platform.OS === 'ios'
               ? [styles.picker, { width: sameWidth ? width : dropdownWidth }]
-              : undefined
+              : [styles.androidPicker]
           }
         >
           {options.map((option) => (
@@ -88,5 +88,8 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     borderRadius: 18,
     backgroundColor: 'white',
+  },
+  androidPicker: {
+    color: 'black',
   },
 });

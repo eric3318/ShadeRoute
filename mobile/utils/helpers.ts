@@ -5,19 +5,12 @@ import {
   RouteToResume,
   SavedRoute,
 } from '@/lib/types';
-
-export function getRouteGeoJson(route: Route): GeoJSON.FeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: route.details.map((detail) => ({
-      type: 'Feature',
-      geometry: { type: 'LineString', coordinates: detail.points },
-      properties: {
-        coverage: detail.coverage,
-      },
-    })),
-  };
-}
+import { Platform } from 'react-native';
+import {
+  LocationObject,
+  getCurrentPositionAsync,
+  LocationAccuracy,
+} from 'expo-location';
 
 export async function initRouting(
   payload: InitRoutingParams
@@ -79,6 +72,19 @@ export async function pollResult(jobId: string): Promise<Route | null> {
   });
 }
 
+export function getRouteGeoJson(route: Route): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: route.details.map((detail) => ({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: detail.points },
+      properties: {
+        coverage: detail.coverage,
+      },
+    })),
+  };
+}
+
 export function toRoute(savedRoute: SavedRoute): RouteToResume {
   const {
     path,
@@ -102,4 +108,54 @@ export function toRoute(savedRoute: SavedRoute): RouteToResume {
     weightedAverageCoverage,
     instructions,
   };
+}
+
+function delay(timeInMilliseconds: number) {
+  return new Promise<null>((resolve) => {
+    setTimeout(() => resolve(null), timeInMilliseconds);
+  });
+}
+
+export async function getCurrentLocationOnce() {
+  const ANDROID_DELAY_IN_MS = 4 * 1000;
+  const IOS_DELAY_IN_MS = 15 * 1000;
+
+  const DELAY_IN_MS =
+    Platform.OS === 'ios' ? IOS_DELAY_IN_MS : ANDROID_DELAY_IN_MS;
+
+  const MAX_TRIES = 3;
+  let tries = 1;
+
+  let location: LocationObject | null = null;
+
+  let locationError: Error | null = null;
+
+  do {
+    try {
+      location = await Promise.race([
+        delay(DELAY_IN_MS),
+        getCurrentPositionAsync({
+          accuracy: LocationAccuracy.BestForNavigation,
+          distanceInterval: 0,
+          timeInterval: 0,
+        }),
+      ]);
+
+      if (!location) {
+        throw new Error('Timeout');
+      }
+    } catch (err) {
+      locationError = err as Error;
+    } finally {
+      tries += 1;
+    }
+  } while (!location && tries <= MAX_TRIES);
+
+  if (!location) {
+    const error = locationError ?? new Error('💣');
+
+    throw error;
+  }
+
+  return location;
 }

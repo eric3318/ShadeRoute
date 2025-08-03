@@ -4,12 +4,14 @@ import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useOptions } from '@/hooks/useOptions/useOptions';
 import { useAppState } from '@/hooks/useAppState/useAppState';
 import { APP_STATE, Mode } from '@/lib/types';
-import { Button } from 'react-native-paper';
+import { Button, IconButton } from 'react-native-paper';
 import { useState, useEffect } from 'react';
 import { Pressable, useAnimatedValue, Animated } from 'react-native';
 import React from 'react';
 import { useLocation } from '@/hooks/useLocation/useLocation';
 import { Linking } from 'react-native';
+import { getCurrentLocationOnce } from '@/utils/helpers';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 const modeOptions = [
   {
@@ -46,12 +48,28 @@ export default function Index() {
     setSelectedMode(mode);
   }, [city, mode]);
 
+  useEffect(() => {
+    async function attemptLocation() {
+      try {
+        await getCurrentLocationOnce();
+      } catch (err) {
+        console.error('Failed to get location:', err);
+      }
+    }
+
+    attemptLocation();
+  }, []);
+
   const onConfirmButtonClick = async () => {
     if (!(await requestLocationPermission())) {
       Alert.alert(
         'Permission for location required',
         'ShadeRoute uses GPS to track and display your location on the map. Your permission is required to use the app.',
         [
+          {
+            text: 'Dismiss',
+            style: 'cancel',
+          },
           {
             text: 'Go to Settings',
             onPress: async () => await Linking.openSettings(),
@@ -139,17 +157,38 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Text style={styles.heading}>
-          Select a {currentStep === 1 ? 'Mode' : 'City'}
-        </Text>
-        <Button
-          mode="contained"
-          onPress={onSavedRoutesButtonClick}
-          labelStyle={{ fontSize: 16, marginHorizontal: 8 }}
-          style={{ borderRadius: 6 }}
-        >
-          Saved Routes
-        </Button>
+        <IconButton
+          icon={() => <MaterialIcons name="arrow-back-ios-new" size={26} />}
+          onPress={() => {
+            if (currentStep > 1) {
+              setCurrentStep((prev) => prev - 1);
+              return;
+            }
+            if (router.canGoBack()) {
+              router.back();
+            }
+          }}
+          disabled={currentStep <= 1 && !router.canGoBack()}
+          style={[
+            { marginHorizontal: 0 },
+            { opacity: currentStep <= 1 && !router.canGoBack() ? 0 : 1 },
+          ]}
+        />
+
+        <View style={styles.header}>
+          <Text style={styles.heading}>
+            Select a {currentStep === 1 ? 'Mode' : 'City'}
+          </Text>
+
+          <Button
+            mode="contained"
+            onPress={onSavedRoutesButtonClick}
+            labelStyle={{ fontSize: 16, marginHorizontal: 8 }}
+            style={{ borderRadius: 6 }}
+          >
+            Saved Routes
+          </Button>
+        </View>
       </View>
 
       <Animated.View
@@ -236,9 +275,11 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     position: 'absolute',
-    top: '10%',
+    top: '5%',
     left: 12,
     right: 12,
+  },
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',

@@ -1,10 +1,13 @@
 import { createContext, ReactNode, useState } from 'react';
 import {
   getCurrentPositionAsync,
+  getLastKnownPositionAsync,
   LocationAccuracy,
   useForegroundPermissions,
+  LocationObject,
 } from 'expo-location';
 import { Platform } from 'react-native';
+import { getCurrentLocationOnce } from '@/utils/helpers';
 
 const LocationContext = createContext<{
   requestLocation: () => Promise<[number, number] | null>;
@@ -35,26 +38,27 @@ const LocationProvider = ({ children }: LocationProviderProps) => {
     return status === 'granted';
   };
 
-  const getLocation = async () => {
+  const requestLocation = async () => {
     try {
       const granted = await requestLocationPermission();
       if (!granted) {
         throw new Error('Permission not granted by user');
       }
 
-      const location = await getCurrentPositionAsync({
-        accuracy:
-          Platform.OS === 'android'
-            ? LocationAccuracy.Low
-            : LocationAccuracy.Lowest,
+      const lastknownlocation = await getLastKnownPositionAsync({
+        maxAge: 15000,
       });
 
+      let locationObject: LocationObject =
+        lastknownlocation ?? (await getCurrentLocationOnce());
+
       const newLocation: [number, number] = [
-        location.coords.longitude,
-        location.coords.latitude,
+        locationObject.coords.longitude,
+        locationObject.coords.latitude,
       ];
 
       setLocation(newLocation);
+
       return newLocation;
     } catch (error) {
       console.error('Error getting location:', error);
@@ -65,7 +69,7 @@ const LocationProvider = ({ children }: LocationProviderProps) => {
   return (
     <LocationContext.Provider
       value={{
-        requestLocation: getLocation,
+        requestLocation,
         requestLocationPermission,
         location,
         setLocation,

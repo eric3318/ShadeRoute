@@ -20,13 +20,7 @@ export default function Layout() {
   return (
     <Tabs
       screenOptions={{
-        headerTintColor: '#023047',
-        headerStyle: {
-          backgroundColor: '#3fa7d6',
-        },
-        headerTitleStyle: {
-          fontWeight: 'normal',
-        },
+        headerTitleAlign: 'center',
       }}
     >
       <Tabs.Screen
@@ -57,6 +51,12 @@ export default function Layout() {
             color: '#3fa7d6',
           },
           headerTitle: 'My Profile',
+          headerLeft: () => (
+            <IconButton
+              icon="arrow-left"
+              onPress={() => router.dismissTo('/')}
+            />
+          ),
         }}
       />
     </Tabs>

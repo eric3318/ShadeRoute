@@ -1,4 +1,4 @@
-import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import LocationButton from '@/components/LocationButton';
 import Map from '@/components/Map';
@@ -25,12 +25,16 @@ import { useAuth } from '@/hooks/useAuth/useAuth';
 import { initRouting, pollResult } from '@/utils/helpers';
 import { useRoute } from '@/hooks/useRoute/useRoute';
 import { addDocument } from '@/utils/firebaseHelpers';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import Debugger from '@/components/Debugger';
+import { useCallback } from 'react';
 
 const CLOSE_PROXIMITY_DISTANCE = 500;
 
 export default function Nav() {
   const { user } = useAuth();
-  const { route: routeToResume } = useRoute();
+  const { route: routeToResume, clearRoute } = useRoute();
 
   const { state, setState } = useAppState();
   const { city, mode, parameter, date: tripTime } = useOptions();
@@ -79,15 +83,15 @@ export default function Nav() {
   const [navInfo, setNavInfo] = useState<{
     distanceTraveled: number;
     averageSpeed: number;
-    arrivalTime: number;
-    speed: number;
+    arrivalTime: number | null;
   } | null>(null);
   const [heading, setHeading] = useState<number>(0);
   const [inputDialogVisible, setInputDialogVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
-  // const [speed, setSpeed] = useState<number>(0);
   const attemptingSignin = useRef<boolean>(false);
+  const [debuggerShown, setDebuggerShown] = useState<boolean>(false);
+  const logRef = useRef<string[]>([]);
 
   const handleConfirmSaveRoute = () => {
     if (!user) {
@@ -241,8 +245,23 @@ export default function Nav() {
         throw new Error('Failed to poll routing result');
       }
 
+      const routeDetails = route.details;
+
+      const length = routeDetails.length;
+
+      routeDetails[0].points = route.path.slice(
+        0,
+        routeDetails[0].points.length
+      );
+
+      routeDetails[length - 1].points = route.path.slice(
+        route.path.length - routeDetails[length - 1].points.length
+      );
+
+      const convertedRoute = { ...route, details: routeDetails };
+
       setLastUsedTripTime(timeStamp);
-      setRoute(route);
+      setRoute(convertedRoute);
       setRouteChanged(true);
     } catch (error) {
       console.error('Error getting route:', error);
@@ -253,6 +272,7 @@ export default function Nav() {
 
   const onBackButtonClick = () => {
     setRouteChanged(false);
+    clearRoute();
     setState(APP_STATE.EDITING);
   };
 
@@ -269,16 +289,6 @@ export default function Nav() {
         await startNavigation();
         break;
     }
-  };
-
-  const onEndTripButtonClick = async () => {
-    setTripPoints({
-      startPoint: null,
-      endPoint: null,
-    });
-    setRoute(null);
-    setRouteChanged(false);
-    setState(APP_STATE.INITIAL);
   };
 
   useEffect(() => {
@@ -303,19 +313,16 @@ export default function Nav() {
     }));
   };
 
-  const onInfoChange = (
-    distanceTraveled: number,
-    averageSpeed: number,
-    arrivalTime: number,
-    currentSpeed: number
-  ) => {
-    setNavInfo({
-      distanceTraveled,
-      averageSpeed,
-      arrivalTime,
-      speed: currentSpeed,
-    });
-  };
+  const onInfoChange = useCallback(
+    (
+      distanceTraveled: number,
+      averageSpeed: number,
+      arrivalTime: number | null
+    ) => {
+      setNavInfo({ distanceTraveled, averageSpeed, arrivalTime });
+    },
+    []
+  );
 
   const onInputDialogSave = async (name: string) => {
     try {
@@ -332,7 +339,16 @@ export default function Nav() {
     setInputDialogVisible(false);
   };
 
-  const onEndTrip = () => {};
+  const onEndTrip = () => {
+    setState(APP_STATE.INITIAL);
+    setTripPoints({
+      startPoint: null,
+      endPoint: null,
+    });
+    clearRoute();
+    setRoute(null);
+    setRouteChanged(false);
+  };
 
   const onHeadingChange = (heading: number) => {
     setHeading(heading);
@@ -362,20 +378,45 @@ export default function Nav() {
         </View>
       )}
 
-      <View style={styles.locationButtonContainer}>
-        <LocationButton onRequestLocation={onRequestLocation} />
-        <IconButton
-          onPress={() => router.push('/')}
-          style={{ backgroundColor: 'white' }}
-          icon={() => <FontAwesome5 name="home" size={24} />}
-        />
-      </View>
+      {state !== APP_STATE.RESUMING && (
+        <View style={styles.buttonContainer}>
+          <LocationButton onRequestLocation={onRequestLocation} />
+
+          <IconButton
+            onPress={() => {
+              setDebuggerShown((prev) => !prev);
+            }}
+            style={{ backgroundColor: 'white' }}
+            icon={() => <AntDesign name="tool" size={24} color="black" />}
+          />
+
+          <IconButton
+            onPress={() => {
+              setUserRequestedLocation(false);
+            }}
+            style={{ backgroundColor: 'white' }}
+            icon={() => (
+              <MaterialIcons
+                name="filter-center-focus"
+                size={26}
+                color="black"
+              />
+            )}
+          />
+
+          <IconButton
+            onPress={() => router.push('/')}
+            style={{ backgroundColor: 'white' }}
+            icon={() => <FontAwesome5 name="home" size={22} />}
+          />
+        </View>
+      )}
 
       <View style={styles.controlPanelContainer}>
         <ControlPanel
           open={controlPanelOpen}
           onStartTrip={onGoButtonClick}
-          onEndTrip={onEndTripButtonClick}
+          onEndTrip={onEndTrip}
           onEdit={onBackButtonClick}
           onConfirmSettings={onConfirmButtonClick}
           inPreview={inPreview}
@@ -404,6 +445,9 @@ export default function Nav() {
             onInfoChange={onInfoChange}
             onHeadingChange={onHeadingChange}
             onEndTrip={onEndTrip}
+            onNewDebugLog={(logContent) => {
+              logRef.current.push(logContent);
+            }}
           />
         </View>
       )}
@@ -424,6 +468,12 @@ export default function Nav() {
         onClose={onInputDialogClose}
       />
 
+      <Debugger
+        log={logRef.current}
+        visible={debuggerShown}
+        onClose={() => setDebuggerShown(false)}
+      />
+
       {loading && <Loader loading={loading} />}
     </View>
   );
@@ -433,8 +483,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  locationButtonContainer: {
-    rowGap: 10,
+  buttonContainer: {
+    rowGap: 8,
     position: 'absolute',
     bottom: '30%',
     left: 0,
@@ -442,7 +492,7 @@ const styles = StyleSheet.create({
   },
   promptContainer: {
     position: 'absolute',
-    top: '10%',
+    top: '8%',
     left: 0,
     right: 0,
     marginHorizontal: 18,
