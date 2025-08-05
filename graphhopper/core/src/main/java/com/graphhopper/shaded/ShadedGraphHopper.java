@@ -20,13 +20,11 @@ import lombok.Data;
 public class ShadedGraphHopper extends GraphHopper {
 
   private final GraphStatus graphStatus;
-  private final RedisCommands<String, String> commands;
+  private final RedisClient client;
 
   public ShadedGraphHopper() {
     this.graphStatus = GraphStatus.getInstance();
-    RedisClient client = RedissClient.getInstance();
-    StatefulRedisConnection<String, String> connection = client.connect();
-    this.commands = connection.sync();
+    this.client = RedissClient.getInstance();
   }
 
   @Override
@@ -49,13 +47,15 @@ public class ShadedGraphHopper extends GraphHopper {
 
   private Map<Integer, Double> retrieveShadeData(String jobId) {
     String key = "job:" + jobId + ":result";
-    Map<String, String> data = commands.hgetall(key);
+    try (StatefulRedisConnection<String, String> connection = client.connect()) {
+      Map<String, String> data = connection.sync().hgetall(key);
 
-    return data.entrySet().stream()
-        .collect(Collectors.toMap(
-            entry -> Integer.parseInt(entry.getKey()),
-            entry -> Double.parseDouble(entry.getValue())
-        ));
+      return data.entrySet().stream()
+          .collect(Collectors.toMap(
+              entry -> Integer.parseInt(entry.getKey()),
+              entry -> Double.parseDouble(entry.getValue())
+          ));
+    }
   }
 
   @Override

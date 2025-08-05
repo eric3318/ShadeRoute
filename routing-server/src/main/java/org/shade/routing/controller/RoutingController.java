@@ -14,6 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+@CrossOrigin(origins = {
+    "http://localhost:5173",
+    "https://shade-route.vercel.app",
+    "https://shaderoute.me"
+})
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api")
@@ -25,7 +30,6 @@ public class RoutingController {
    * Initiates a routing job based on the given request body.
    */
   @PostMapping("/route")
-  @CrossOrigin(origins = {"http://localhost:5173"})
   public ResponseEntity<?> route(@RequestBody RouteRequestDto routeRequestDto) {
     return ResponseEntity.ok(routingService.init(routeRequestDto));
   }
@@ -43,7 +47,6 @@ public class RoutingController {
    * Retrieves the final routing result for a given job ID.
    */
   @GetMapping("/results")
-  @CrossOrigin(origins = {"http://localhost:5173"})
   public ResponseEntity<?> getRoutingResult(@RequestParam String jobId) {
     RouteResponse result = routingService.getResult(jobId);
     return result != null ? ResponseEntity.ok(result) : ResponseEntity.noContent().build();
