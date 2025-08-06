@@ -11,9 +11,15 @@ export type Edge = {
     points: number[];
 };
 
-export type Input = {
+export type JobData = {
+    jobId: string;
+    index: number;
     timestamp: number;
+};
+
+export type Input = {
     data: Data;
+    timestamp: number;
 };
 
 export type Data = {
