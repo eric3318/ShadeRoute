@@ -6,6 +6,7 @@ import NavBar from './components/NavBar/NavBar';
 import logoText from '../../assets/logo-text.svg';
 import styles from './landingPage.module.css';
 import change from '../../assets/change.png';
+import androidIcon from '../../assets/android-download.png';
 
 const MOBILE_APP_URL =
   'https://firebasestorage.googleapis.com/v0/b/shaderoute-f3c57.firebasestorage.app/o/shaderoute.apk?alt=media&token=c5b90d0a-f545-476e-8084-228fbcec5ef5';
@@ -101,7 +102,7 @@ export default function LandingPage() {
 
               <Link to={`${MOBILE_APP_URL}`} style={{ display: 'contents' }}>
                 <img
-                  src="/src/assets/android-download.png"
+                  src={androidIcon}
                   alt="mobile app download"
                   width={150}
                   style={{
