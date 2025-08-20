@@ -1,11 +1,14 @@
 import { Button, Card, Divider, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { Link } from 'react-router';
 
-import { IconMapPin } from '@tabler/icons-react';
+import { IconClock, IconMapPin, IconSettings } from '@tabler/icons-react';
 import NavBar from './components/NavBar/NavBar';
 import logoText from '../../assets/logo-text.svg';
 import styles from './landingPage.module.css';
 import change from '../../assets/change.png';
+
+const MOBILE_APP_URL =
+  'https://firebasestorage.googleapis.com/v0/b/shaderoute-f3c57.firebasestorage.app/o/shaderoute.apk?alt=media&token=c5b90d0a-f545-476e-8084-228fbcec5ef5';
 
 export default function LandingPage() {
   return (
@@ -28,9 +31,9 @@ export default function LandingPage() {
         <section style={{ backgroundColor: '#0466C8' }}>
           <div className={`container-lg ${styles.heroContainer}`}>
             <SimpleGrid cols={{ sm: 2 }} className={styles.heroContent}>
-              <Stack gap="xl">
+              <Stack gap="xl" justify="center">
                 <Title order={1} c="white" className={styles.mainHeading}>
-                  Power your daily runs — without the <span style={{ color: '#FAA916' }}>burn.</span>
+                  Go Shade Yourself.
                 </Title>
 
                 <div>
@@ -64,7 +67,7 @@ export default function LandingPage() {
 
                   <Card padding="lg">
                     <Stack>
-                      <IconMapPin size={48} stroke={1.5} color="#0466C8" />
+                      <IconSettings size={48} stroke={1.5} color="#0466C8" />
 
                       <Text size="xl" fw={500}>
                         Flexible Modes
@@ -74,7 +77,7 @@ export default function LandingPage() {
 
                   <Card padding="lg">
                     <Stack>
-                      <IconMapPin size={48} stroke={1.5} color="#0466C8" />
+                      <IconClock size={48} stroke={1.5} color="#0466C8" />
 
                       <Text size="xl" fw={500}>
                         Anytime Year-round
@@ -83,6 +86,30 @@ export default function LandingPage() {
                   </Card>
                 </SimpleGrid>
               </Stack>
+            </Stack>
+          </div>
+        </section>
+
+        <section>
+          <div className="container-lg">
+            <Stack py="xl">
+              <Title className={styles.sectionHeading}>Try the app</Title>
+
+              <Text size="lg">
+                This website is designed for larger screens. Download the android app for best experience on your phone.
+              </Text>
+
+              <Link to={`${MOBILE_APP_URL}`} style={{ display: 'contents' }}>
+                <img
+                  src="/src/assets/android-download.png"
+                  alt="mobile app download"
+                  width={150}
+                  style={{
+                    borderRadius: 12,
+                    alignSelf: 'center',
+                  }}
+                />
+              </Link>
             </Stack>
           </div>
         </section>
@@ -99,22 +126,14 @@ export default function LandingPage() {
           <Stack justify="space-between" h="100%">
             <SimpleGrid cols={{ sm: 3 }} className={styles.footerContent}>
               <img src={logoText} alt="logo" width={200} />
-
-              {/* <Stack c="white">
-                <Title size="lg">Contact</Title>
-
-                <Text>m.nascimento@northeastern.edu</Text>
-
-                <Text>nie.han@northeastern.edu</Text>
-              </Stack> */}
             </SimpleGrid>
 
             <Stack c="white">
               <Divider />
 
-              <Text size="sm">Demo for SSTD 2025.</Text>
-
-              <Text size="sm">© 2025 ShadeRoute. All rights reserved. </Text>
+              <Text size="sm">
+                Demo for <a href="https://sstd2025.github.io/index.html">SSTD 2025</a>
+              </Text>
             </Stack>
           </Stack>
         </div>
