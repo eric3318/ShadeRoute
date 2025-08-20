@@ -92,8 +92,8 @@ export default function LandingPage() {
         </section>
 
         <section>
-          <div className="container-lg">
-            <Stack py="xl">
+          <div className={`container-lg ${styles.featuresContainer}`}>
+            <Stack gap="lg">
               <Title className={styles.sectionHeading}>Try the app</Title>
 
               <Text size="lg">
@@ -132,8 +132,16 @@ export default function LandingPage() {
             <Stack c="white">
               <Divider />
 
-              <Text size="sm">
-                Demo for <a href="https://sstd2025.github.io/index.html">SSTD 2025</a>
+              <Text>
+                Demo for{' '}
+                <a
+                  href="https://sstd2025.github.io/index.html"
+                  style={{
+                    color: 'inherit',
+                  }}
+                >
+                  SSTD 2025
+                </a>
               </Text>
             </Stack>
           </Stack>
